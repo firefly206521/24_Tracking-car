@@ -88,7 +88,8 @@ main.o: ../main.c \
  C:/Users/Aupassen/workspace_ccstheia/05_MOTOR\ _backup2/user_driver/motor.h \
  C:/Users/Aupassen/workspace_ccstheia/05_MOTOR\ _backup2/user_driver/key.h \
  C:/Users/Aupassen/workspace_ccstheia/05_MOTOR\ _backup2/user_driver/oled.h \
- C:/Users/Aupassen/workspace_ccstheia/05_MOTOR\ _backup2/user_driver/tracker.h
+ C:/Users/Aupassen/workspace_ccstheia/05_MOTOR\ _backup2/user_driver/tracker.h \
+ C:/Users/Aupassen/workspace_ccstheia/05_MOTOR\ _backup2/user_driver/idle.h
 ti_msp_dl_config.h:
 C:/TI/mspm0_sdk_2_10_00_04/source/ti/devices/msp/msp.h:
 C:/TI/mspm0_sdk_2_10_00_04/source/ti/devices/DeviceFamily.h:
@@ -177,3 +178,4 @@ C:/Users/Aupassen/workspace_ccstheia/05_MOTOR\ _backup2/user_driver/motor.h:
 C:/Users/Aupassen/workspace_ccstheia/05_MOTOR\ _backup2/user_driver/key.h:
 C:/Users/Aupassen/workspace_ccstheia/05_MOTOR\ _backup2/user_driver/oled.h:
 C:/Users/Aupassen/workspace_ccstheia/05_MOTOR\ _backup2/user_driver/tracker.h:
+C:/Users/Aupassen/workspace_ccstheia/05_MOTOR\ _backup2/user_driver/idle.h:

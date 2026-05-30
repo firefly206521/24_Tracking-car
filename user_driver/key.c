@@ -1,8 +1,11 @@
 #include "key.h"
 #include "oled.h"
+#include "motor.h"
+
 extern int status;
 extern int encoder_motor1;
 extern int encoder_motor2;
+extern int start_flag;
 uint8_t get_key_value(uint32_t key)
 {
 uint8_t high_bits = DL_GPIO_readPins(KEY_PORT, key);
@@ -19,19 +22,17 @@ void GROUP1_IRQHandler(void)
     switch (DL_GPIO_getPendingInterrupt(GPIOB))
     {
     case KEY_KEY_1_IIDX:
-        status=(status+1)%4;
+        status=(status+1)%3;
+        start_flag=0;
         break;
     case KEY_KEY_4_IIDX:
+        start_flag=1;
         break;
     case MOTOR_EC2A_IIDX:
         encoder_motor2++;
         break;
     default:
         break;
-        OLED_Init();
-        OLED_ColorTurn(0);//0正常显示，1反色显示
-        OLED_DisplayTurn(0);//0正常显示，1屏幕旋转180度
-        OLED_Clear();
     }
 
     //电机的上升沿触发中断也在这里写
@@ -40,7 +41,6 @@ switch (DL_GPIO_getPendingInterrupt(GPIOA))
     {
         case MOTOR_EC1A_IIDX:
             encoder_motor1++;
-            DL_GPIO_setPins(LED_GRP_0_PORT, LED_GRP_0_LED_1_PIN);
             break;
 
         default:

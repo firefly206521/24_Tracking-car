@@ -4,6 +4,7 @@
 #include "ti_msp_dl_config.h"
 
 void tracker_get_value();
+void track_line();
 //VCC<-->5V
 //GND
 //L1<-->PB8

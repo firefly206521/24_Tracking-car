@@ -2,6 +2,7 @@
 "./startup_mspm0g350x_ticlang.o"
 "./main.o"
 "./user_driver/delay.o"
+"./user_driver/idle.o"
 "./user_driver/key.o"
 "./user_driver/motor.o"
 "./user_driver/oled.o"

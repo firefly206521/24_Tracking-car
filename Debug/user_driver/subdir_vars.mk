@@ -7,6 +7,7 @@ SHELL = cmd.exe
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../user_driver/delay.c \
+../user_driver/idle.c \
 ../user_driver/key.c \
 ../user_driver/motor.c \
 ../user_driver/oled.c \
@@ -14,6 +15,7 @@ C_SRCS += \
 
 C_DEPS += \
 ./user_driver/delay.d \
+./user_driver/idle.d \
 ./user_driver/key.d \
 ./user_driver/motor.d \
 ./user_driver/oled.d \
@@ -21,6 +23,7 @@ C_DEPS += \
 
 OBJS += \
 ./user_driver/delay.o \
+./user_driver/idle.o \
 ./user_driver/key.o \
 ./user_driver/motor.o \
 ./user_driver/oled.o \
@@ -28,6 +31,7 @@ OBJS += \
 
 OBJS__QUOTED += \
 "user_driver\delay.o" \
+"user_driver\idle.o" \
 "user_driver\key.o" \
 "user_driver\motor.o" \
 "user_driver\oled.o" \
@@ -35,6 +39,7 @@ OBJS__QUOTED += \
 
 C_DEPS__QUOTED += \
 "user_driver\delay.d" \
+"user_driver\idle.d" \
 "user_driver\key.d" \
 "user_driver\motor.d" \
 "user_driver\oled.d" \
@@ -42,6 +47,7 @@ C_DEPS__QUOTED += \
 
 C_SRCS__QUOTED += \
 "../user_driver/delay.c" \
+"../user_driver/idle.c" \
 "../user_driver/key.c" \
 "../user_driver/motor.c" \
 "../user_driver/oled.c" \

@@ -37,7 +37,10 @@
 #include "key.h"
 #include "oled.h"
 #include "tracker.h"
-int status=0;
+#include "idle.h"
+
+int status=0;//改变状态机
+int start_flag=0;//确定改变状态
 int encoder_motor1=0;
 int encoder_motor2=0;
 float target_speed_1=0;
@@ -49,7 +52,7 @@ extern uint8_t tracker_value[];
 int main(void)
 {
     SYSCFG_DL_init();
-
+    delay_ms(1000);//等待电源稳定，保证IIC上电成功
     //OLED初始化
     OLED_Init();
     OLED_ColorTurn(0);//0正常显示，1反色显示
@@ -60,43 +63,46 @@ int main(void)
     motor_init(1);
     motor_init(2);
 
-    //给电机和案件引脚设置为开启中断s功能
+    //给电机和案件引脚设置为开启中断功能
     NVIC_EnableIRQ(MOTOR_EC1A_IIDX);
     NVIC_EnableIRQ(MOTOR_EC2A_IIDX);
     NVIC_EnableIRQ(KEY_KEY_1_IIDX);
     NVIC_EnableIRQ(GPIO_MULTIPLE_GPIOB_INT_IRQN);
     NVIC_EnableIRQ(MOTOR_GPIOA_INT_IRQN);
-    motor_set_direction(1, 1);
-    motor_set_direction(2, 1);
-
-
-
-
+    motor_set_direction(1, 0);
+    motor_set_direction(2, 0);
 
     while (1) {
-        tracker_get_value();
-        char tracker_buf[] = "0000000\n";
-        sprintf(tracker_buf, "%d%d%d%d%d%d%d\n", 
-        tracker_value[0], tracker_value[1], tracker_value[2], 
-        tracker_value[3], tracker_value[4], tracker_value[5], 
-        tracker_value[6]);
-        OLED_ShowString(0, 0, (u8*)tracker_buf,16);
+
         if(status==0){
-            encoder_motor1=0;
-            encoder_motor2=0;
-            motor_set_direction(1,0);
-            motor_set_direction(2,0);
-            target_speed_1=0;
-            target_speed_2=0;
-            OLED_ShowStatusAndSpeeds(status, speed_1, speed_2);
+            stay_idle();
         }
         else if(status==1){
+            if(start_flag==0){
+                stay_idle();
+            }
+            else if(start_flag==1)
+            {        
             motor_set_direction(1, 1);
             motor_set_direction(2, 1);
             target_speed_1=800;
             target_speed_2=800;
             OLED_ShowStatusAndSpeeds(status, speed_1, speed_2);
+            OLED_Refresh();
+            }
         }
+        else if(status==2){
+            if(start_flag==0){
+                stay_idle();
+            }
+            else if(start_flag==1)
+            {
+            track_line(); 
+            OLED_ShowStatusAndSpeeds(status, speed_1, speed_2);
+            OLED_Refresh();
+            }
+        }
+        
 
 
 
