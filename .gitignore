@@ -10,6 +10,9 @@ Release/
 *_linkInfo.xml
 *.genlibs
 
+# === 生成文件 ===
+README.html
+
 # === CCS IDE 生成文件 ===
 .settings/
 .ccsproject
@@ -17,6 +20,7 @@ Release/
 .project
 
 # === clangd 缓存 ===
+.clangd
 .clangd/
 .cache/
 
