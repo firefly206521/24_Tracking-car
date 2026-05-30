@@ -19,7 +19,7 @@ void GROUP1_IRQHandler(void)
     switch (DL_GPIO_getPendingInterrupt(GPIOB))
     {
     case KEY_KEY_1_IIDX:
-        status=(status+1)%2;
+        status=(status+1)%4;
         break;
     case KEY_KEY_4_IIDX:
         break;

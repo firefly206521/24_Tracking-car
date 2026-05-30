@@ -68,6 +68,11 @@ int main(void)
     NVIC_EnableIRQ(MOTOR_GPIOA_INT_IRQN);
     motor_set_direction(1, 1);
     motor_set_direction(2, 1);
+
+
+
+
+
     while (1) {
         tracker_get_value();
         char tracker_buf[] = "0000000\n";
@@ -76,7 +81,6 @@ int main(void)
         tracker_value[3], tracker_value[4], tracker_value[5], 
         tracker_value[6]);
         OLED_ShowString(0, 0, (u8*)tracker_buf,16);
-        OLED_Refresh();
         if(status==0){
             encoder_motor1=0;
             encoder_motor2=0;
@@ -84,11 +88,7 @@ int main(void)
             motor_set_direction(2,0);
             target_speed_1=0;
             target_speed_2=0;
-            // OLED_ShowStatusAndSpeeds(status, speed_1, speed_2);
-            // DL_GPIO_setPins(LED_GRP_0_PORT, LED_GRP_0_LED_1_PIN);
-            // delay_cycles(500);
-            // DL_GPIO_clearPins(LED_GRP_0_PORT, LED_GRP_0_LED_1_PIN);
-            // delay_cycles(500);
+            OLED_ShowStatusAndSpeeds(status, speed_1, speed_2);
         }
         else if(status==1){
             motor_set_direction(1, 1);
@@ -97,6 +97,22 @@ int main(void)
             target_speed_2=800;
             OLED_ShowStatusAndSpeeds(status, speed_1, speed_2);
         }
+
+
+
+        //     // OLED_ShowStatusAndSpeeds(status, speed_1, speed_2);
+        //     // DL_GPIO_setPins(LED_GRP_0_PORT, LED_GRP_0_LED_1_PIN);
+        //     // delay_cycles(500);
+        //     // DL_GPIO_clearPins(LED_GRP_0_PORT, LED_GRP_0_LED_1_PIN);
+        //     // delay_cycles(500);
+        // }
+        // else if(status==1){
+        //     motor_set_direction(1, 1);
+        //     motor_set_direction(2, 1);
+        //     target_speed_1=800;
+        //     target_speed_2=800;
+        //     OLED_ShowStatusAndSpeeds(status, speed_1, speed_2);
+        // }
     
 
         // OLED_Refresh();

@@ -24,6 +24,11 @@ void tracker_get_value()
     tracker_value[6] = get_gpio_value(tracker_R0_PORT, tracker_R0_PIN); 
 }
 
+void track_line(){
+
+    
+}
+
 
 
 
