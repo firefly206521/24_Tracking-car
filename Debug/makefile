@@ -4,7 +4,7 @@
 
 SHELL = cmd.exe
 
-CG_TOOL_ROOT := D:/ti/ccs2050/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS
+CG_TOOL_ROOT := D:/CCS_20.5.0.00028_win/ccs2050/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS
 
 GEN_OPTS__FLAG := @"./device.opt" 
 GEN_CMDS__FLAG := -Wl,-l"./device_linker.cmd" 
@@ -15,10 +15,15 @@ ORDERED_OBJS += \
 "./main.o" \
 "./user_driver/delay.o" \
 "./user_driver/idle.o" \
+"./user_driver/inv_mpu.o" \
+"./user_driver/inv_mpu_dmp_motion_driver.o" \
 "./user_driver/key.o" \
 "./user_driver/motor.o" \
+"./user_driver/mpu_nav.o" \
+"./user_driver/mpu_port.o" \
 "./user_driver/oled.o" \
 "./user_driver/tracker.o" \
+"./user_driver/uart.o" \
 $(GEN_CMDS__FLAG) \
 -Wl,-ldevice.cmd.genlibs \
 -Wl,-llibc.a \
@@ -137,15 +142,15 @@ all: $(OBJS) $(GEN_CMDS)
 # Tool invocations
 05_MOTOR\ _backup2.out: $(OBJS) $(GEN_CMDS)
 	@echo 'Arm Linker - building target: "$@"'
-	"D:/ti/ccs2050/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/bin/tiarmclang.exe" @"device.opt"  -march=thumbv6m -mcpu=cortex-m0plus -mfloat-abi=soft -mlittle-endian -mthumb -O2 -gdwarf-3 -Wall -Wl,-m"05_MOTOR _backup2.map" -Wl,-i"C:/TI/mspm0_sdk_2_10_00_04/source" -Wl,-i"C:/Users/Aupassen/workspace_ccstheia/05_MOTOR _backup2" -Wl,-i"C:/Users/Aupassen/workspace_ccstheia/05_MOTOR _backup2/Debug/syscfg" -Wl,-i"D:/ti/ccs2050/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/lib" -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="05_MOTOR _backup2_linkInfo.xml" -Wl,--rom_model -o "05_MOTOR _backup2.out" $(ORDERED_OBJS)
+	"D:/CCS_20.5.0.00028_win/ccs2050/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/bin/tiarmclang.exe" @"device.opt"  -march=thumbv6m -mcpu=cortex-m0plus -mfloat-abi=soft -mlittle-endian -mthumb -O2 -gdwarf-3 -Wall -Wl,-m"05_MOTOR _backup2.map" -Wl,-i"D:/CCS_20.5.0.00028_win/ccs2050/mspm0_sdk_2_10_00_04/source" -Wl,-i"E:/control_Practice/05_MOTOR _backup2" -Wl,-i"E:/control_Practice/05_MOTOR _backup2/Debug/syscfg" -Wl,-i"D:/CCS_20.5.0.00028_win/ccs2050/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/lib" -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="05_MOTOR _backup2_linkInfo.xml" -Wl,--rom_model -o "05_MOTOR _backup2.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
 # Other Targets
 clean:
 	-$(RM) $(GEN_MISC_FILES__QUOTED)$(GEN_FILES__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "ti_msp_dl_config.o" "startup_mspm0g350x_ticlang.o" "main.o" "user_driver\delay.o" "user_driver\idle.o" "user_driver\key.o" "user_driver\motor.o" "user_driver\oled.o" "user_driver\tracker.o" 
-	-$(RM) "ti_msp_dl_config.d" "startup_mspm0g350x_ticlang.d" "main.d" "user_driver\delay.d" "user_driver\idle.d" "user_driver\key.d" "user_driver\motor.d" "user_driver\oled.d" "user_driver\tracker.d" 
+	-$(RM) "ti_msp_dl_config.o" "startup_mspm0g350x_ticlang.o" "main.o" "user_driver\delay.o" "user_driver\idle.o" "user_driver\inv_mpu.o" "user_driver\inv_mpu_dmp_motion_driver.o" "user_driver\key.o" "user_driver\motor.o" "user_driver\mpu_nav.o" "user_driver\mpu_port.o" "user_driver\oled.o" "user_driver\tracker.o" "user_driver\uart.o" 
+	-$(RM) "ti_msp_dl_config.d" "startup_mspm0g350x_ticlang.d" "main.d" "user_driver\delay.d" "user_driver\idle.d" "user_driver\inv_mpu.d" "user_driver\inv_mpu_dmp_motion_driver.d" "user_driver\key.d" "user_driver\motor.d" "user_driver\mpu_nav.d" "user_driver\mpu_port.d" "user_driver\oled.d" "user_driver\tracker.d" "user_driver\uart.d" 
 	-@echo ' '
 
 .PHONY: all clean dependents

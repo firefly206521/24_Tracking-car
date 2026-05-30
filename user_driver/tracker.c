@@ -1,15 +1,15 @@
 #include "tracker.h"
 #include "motor.h"
 uint8_t tracker_value[]={0,0,0,0,0,0,0};
-float Kp = 20.0f;    // 比例系数
-float Ki = 0.00f;    // 积分系数
+float Kp = 40.0f;    // 比例系数
+float Ki = 0.5f;    // 积分系数
 float error = 0;         // 当前偏差
 float last_error = 0;    // 上一次偏差（这里其实没用到，保留是为了以后可能扩展）
 float integral = 0;      // 积分累加和
 float pi_output = 0;     // PI 控制器的输出值
-#define BASE_SPEED  300   // 直道的基准速度（左右轮共同的基础值）
-#define MAX_SPEED   1200  // 最高速度，防止超速冲出赛道
-#define MIN_SPEED   200   // 最低速度，防止电机停转或无力
+#define BASE_SPEED  100   // 直道的基准速度（左右轮共同的基础值）
+#define MAX_SPEED   800  // 最高速度，防止超速冲出赛道
+#define MIN_SPEED   50  // 最低速度，防止电机停转或无力
 extern float target_speed_1;
 extern float target_speed_2;
 

@@ -132,6 +132,40 @@ bool SYSCFG_DL_SYSCTL_SYSPLL_init(void);
 #define GPIO_OLED_IOMUX_SCL                                      (IOMUX_PINCM15)
 #define GPIO_OLED_IOMUX_SCL_FUNC                       IOMUX_PINCM15_PF_I2C1_SCL
 
+/* Defines for MPU6050 */
+#define MPU6050_INST                                                        I2C0
+#define MPU6050_INST_IRQHandler                                  I2C0_IRQHandler
+#define MPU6050_INST_INT_IRQN                                      I2C0_INT_IRQn
+#define MPU6050_BUS_SPEED_HZ                                              100000
+#define GPIO_MPU6050_SDA_PORT                                              GPIOA
+#define GPIO_MPU6050_SDA_PIN                                       DL_GPIO_PIN_0
+#define GPIO_MPU6050_IOMUX_SDA                                    (IOMUX_PINCM1)
+#define GPIO_MPU6050_IOMUX_SDA_FUNC                     IOMUX_PINCM1_PF_I2C0_SDA
+#define GPIO_MPU6050_SCL_PORT                                              GPIOA
+#define GPIO_MPU6050_SCL_PIN                                       DL_GPIO_PIN_1
+#define GPIO_MPU6050_IOMUX_SCL                                    (IOMUX_PINCM2)
+#define GPIO_MPU6050_IOMUX_SCL_FUNC                     IOMUX_PINCM2_PF_I2C0_SCL
+
+
+/* Defines for Yaw */
+#define Yaw_INST                                                           UART0
+#define Yaw_INST_FREQUENCY                                              40000000
+#define Yaw_INST_IRQHandler                                     UART0_IRQHandler
+#define Yaw_INST_INT_IRQN                                         UART0_INT_IRQn
+#define GPIO_Yaw_RX_PORT                                                   GPIOA
+#define GPIO_Yaw_TX_PORT                                                   GPIOA
+#define GPIO_Yaw_RX_PIN                                           DL_GPIO_PIN_31
+#define GPIO_Yaw_TX_PIN                                           DL_GPIO_PIN_28
+#define GPIO_Yaw_IOMUX_RX                                         (IOMUX_PINCM6)
+#define GPIO_Yaw_IOMUX_TX                                         (IOMUX_PINCM3)
+#define GPIO_Yaw_IOMUX_RX_FUNC                          IOMUX_PINCM6_PF_UART0_RX
+#define GPIO_Yaw_IOMUX_TX_FUNC                          IOMUX_PINCM3_PF_UART0_TX
+#define Yaw_BAUD_RATE                                                   (115200)
+#define Yaw_IBRD_40_MHZ_115200_BAUD                                         (21)
+#define Yaw_FBRD_40_MHZ_115200_BAUD                                         (45)
+
+
+
 
 
 /* Port definition for Pin Group LED_GRP_0 */
@@ -227,6 +261,8 @@ bool SYSCFG_DL_SYSCTL_SYSPLL_init(void);
 #define tracker_L0_IOMUX                                         (IOMUX_PINCM37)
 
 
+
+
 /* clang-format on */
 
 void SYSCFG_DL_init(void);
@@ -238,7 +274,10 @@ bool SYSCFG_DL_SYSCTL_SYSPLL_init(void);
 void SYSCFG_DL_PWMAB_init(void);
 void SYSCFG_DL_MOTOR_PID_init(void);
 void SYSCFG_DL_OLED_init(void);
+void SYSCFG_DL_MPU6050_init(void);
+void SYSCFG_DL_Yaw_init(void);
 
+void SYSCFG_DL_SYSTICK_init(void);
 
 bool SYSCFG_DL_saveConfiguration(void);
 bool SYSCFG_DL_restoreConfiguration(void);

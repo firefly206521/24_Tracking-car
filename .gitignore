@@ -1,0 +1,40 @@
+# === 编译产物 ===
+Debug/
+Release/
+*.o
+*.d
+*.out
+*.map
+*.hex
+*.bin
+*_linkInfo.xml
+*.genlibs
+
+# === CCS IDE 生成文件 ===
+.settings/
+.ccsproject
+.cproject
+.project
+
+# === clangd 缓存 ===
+.clangd/
+.cache/
+
+# === VS Code ===
+.vscode/
+
+# === 系统和临时文件 ===
+Thumbs.db
+*.tmp
+*.swp
+*.bak
+*.log
+
+# === 输出/构建目录 ===
+build/
+dist/
+target/
+
+# === claude产物 ===
+.claude/
+temp-mcu-memory/

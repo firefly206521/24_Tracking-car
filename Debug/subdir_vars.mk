@@ -10,7 +10,7 @@ SYSCFG_SRCS += \
 
 C_SRCS += \
 ./ti_msp_dl_config.c \
-C:/TI/mspm0_sdk_2_10_00_04/source/ti/devices/msp/m0p/startup_system_files/ticlang/startup_mspm0g350x_ticlang.c \
+D:/CCS_20.5.0.00028_win/ccs2050/mspm0_sdk_2_10_00_04/source/ti/devices/msp/m0p/startup_system_files/ticlang/startup_mspm0g350x_ticlang.c \
 ../main.c 
 
 GEN_CMDS += \
@@ -64,7 +64,7 @@ SYSCFG_SRCS__QUOTED += \
 
 C_SRCS__QUOTED += \
 "./ti_msp_dl_config.c" \
-"C:/TI/mspm0_sdk_2_10_00_04/source/ti/devices/msp/m0p/startup_system_files/ticlang/startup_mspm0g350x_ticlang.c" \
+"D:/CCS_20.5.0.00028_win/ccs2050/mspm0_sdk_2_10_00_04/source/ti/devices/msp/m0p/startup_system_files/ticlang/startup_mspm0g350x_ticlang.c" \
 "../main.c" 
 
 
