@@ -35,6 +35,10 @@ build/
 dist/
 target/
 
+# === Theia IDE ===
+.theia/
+*.theia-workspace
+
 # === claude产物 ===
 .claude/
 temp-mcu-memory/
