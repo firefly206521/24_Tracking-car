@@ -4,6 +4,7 @@
 #include "ti_msp_dl_config.h"
 
 extern uint8_t tracker_value[];
+extern volatile uint8_t tracking_active;
 
 void tracker_get_value();
 void track_line();

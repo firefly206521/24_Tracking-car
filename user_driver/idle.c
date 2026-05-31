@@ -1,9 +1,11 @@
 #include "motor.h"
 #include "oled.h"
 #include "key.h"
+#include "tracker.h"
 
 void stay_idle(void)
-{   
+{
+tracking_active = 0;
 encoder_motor1=0;
 encoder_motor2=0;
 motor_set_direction(MOTOR_LEFT,0);

@@ -1,13 +1,15 @@
 #include "tracker.h"
 #include "motor.h"
 uint8_t tracker_value[]={0,0,0,0,0,0,0};
-float Kp = 90.0f;    // 比例系数
-float Ki = 0.0f;    // 积分系数
+volatile uint8_t tracking_active = 0;  // 循迹模式激活标志
+float Kp = 320.0f;    // 比例系数
+float Ki = 1.6f;    // 积分系数
+float Kd = 0.0f;     // 微分系数，阻尼振荡
 float error = 0;         // 当前偏差
-float last_error = 0;    // 上一次偏差，脱线时用于保持原方向
+float last_error = 0;    // 上一次偏差，用于微分项+脱线保持
 float integral = 0;      // 积分累加和
-float pi_output = 0;     // PI 控制器的输出值
-#define BASE_SPEED  100   // 直道的基准速度（左右轮共同的基础值）
+float pid_output = 0;     // PID 控制器的输出值
+#define BASE_SPEED  300   // 直道的基准速度（左右轮共同的基础值）
 #define MAX_SPEED   800  // 最高速度，防止超速冲出赛道
 #define MIN_SPEED   50  // 最低速度，防止电机停转或无力
 
@@ -59,29 +61,25 @@ void track_line(){
     tracker_get_value();
     // ② 计算当前偏差
     error = compute_error(tracker_value);
-    // ③ 累加积分（过去误差的和）
+    // ③ 累加积分
     integral += error;
-    // ④ 积分限幅，防止过大引起失控
     if (integral > 30.0f) integral = 30.0f;
     if (integral < -30.0f) integral = -30.0f;
-    // ⑤ 计算控制量 = 比例项 + 积分项
-    pi_output = Kp * error + Ki * integral;
-    // ⑥ 保留下一次可能用到的误差（目前我们没用到微分，可以删掉）
+    // ④ PID 控制量 = P + I + D（由 50ms ISR 定时调用）
+    float derivative = error - last_error;
+    pid_output = Kp * error + Ki * integral + Kd * derivative;
     last_error = error;
-    // ⑦ 将控制量转化为左右轮的速度差
-    int16_t left_speed  = BASE_SPEED + (int16_t)pi_output;  // 左轮 = 基础 + 修正
-    int16_t right_speed = BASE_SPEED - (int16_t)pi_output;  // 右轮 = 基础 - 修正
-    // ⑧ 限幅，保证速度在合理范围内
+    // ⑤ 转化为左右轮速度差
+    int16_t left_speed  = BASE_SPEED + (int16_t)pid_output;
+    int16_t right_speed = BASE_SPEED - (int16_t)pid_output;
+    // ⑥ 限幅
     if (left_speed > MAX_SPEED)  left_speed = MAX_SPEED;
     if (left_speed < MIN_SPEED)  left_speed = MIN_SPEED;
     if (right_speed > MAX_SPEED) right_speed = MAX_SPEED;
     if (right_speed < MIN_SPEED) right_speed = MIN_SPEED;
-    // ⑨ 设置电机方向和目标速度
-    motor_set_direction(MOTOR_LEFT, 1);   // 左电机正转 (motor 2)
-    motor_set_direction(MOTOR_RIGHT, 1);  // 右电机正转 (motor 1)
-    target_speed_2 = left_speed;     // MOTOR_LEFT=2 → 左电机目标速度
-    target_speed_1 = right_speed;    // MOTOR_RIGHT=1 → 右电机目标速度
-    
+    // ⑦ 输出目标速度
+    target_speed_2 = left_speed;     // MOTOR_LEFT=2 → 左电机
+    target_speed_1 = right_speed;    // MOTOR_RIGHT=1 → 右电机
 }
 
 

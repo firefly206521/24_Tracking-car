@@ -1,4 +1,5 @@
 #include "motor.h"
+#include "tracker.h"
 
 volatile int encoder_motor1;
 volatile int encoder_motor2;
@@ -128,6 +129,10 @@ void MOTOR_PID_INST_IRQHandler()
             float raw_2 = speed_calculate(MOTOR_LEFT);
             speed_1 = speed_1 * (1.0f - SPEED_FILTER_ALPHA) + raw_1 * SPEED_FILTER_ALPHA;
             speed_2 = speed_2 * (1.0f - SPEED_FILTER_ALPHA) + raw_2 * SPEED_FILTER_ALPHA;
+            // 循迹控制：20Hz 固定周期更新目标速度
+            if (tracking_active) {
+                track_line();
+            }
             MOTOR_PID(MOTOR_RIGHT,target_speed_1);
             MOTOR_PID(MOTOR_LEFT,target_speed_2);
         }

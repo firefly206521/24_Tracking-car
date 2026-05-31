@@ -2,6 +2,8 @@
 #include "oled.h"
 #include "motor.h"
 
+extern volatile uint32_t sys_tick_ms;
+
 int status;//改变状态机
 int start_flag;//确定改变状态
 
@@ -14,18 +16,30 @@ if((high_bits & key)!=0){
 else return 0;
 }
 
+//按键消抖时间窗口 (ms)
+#define KEY_DEBOUNCE_MS 50
+
 //GPIO的中断是很多GPIO共享的，所以具体哪个GPIO触发了中断需要在一个函数里判断
 void GROUP1_IRQHandler(void)
 {
+    static uint32_t last_key1_ms = 0;
+    static uint32_t last_key4_ms = 0;
+
     DL_GPIO_setPins(LED_GRP_0_PORT, LED_GRP_0_LED_1_PIN);
     switch (DL_GPIO_getPendingInterrupt(GPIOB))
     {
     case KEY_KEY_1_IIDX:
-        status=(status+1)%3;
-        start_flag=0;
+        if (sys_tick_ms - last_key1_ms >= KEY_DEBOUNCE_MS) {
+            last_key1_ms = sys_tick_ms;
+            status=(status+1)%3;
+            start_flag=0;
+        }
         break;
     case KEY_KEY_4_IIDX:
-        start_flag ^= 1;
+        if (sys_tick_ms - last_key4_ms >= KEY_DEBOUNCE_MS) {
+            last_key4_ms = sys_tick_ms;
+            start_flag ^= 1;
+        }
         break;
     case MOTOR_EC2A_IIDX:
         encoder_motor2++;
