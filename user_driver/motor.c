@@ -16,6 +16,12 @@ float current_error_2=0;
 float target_speed_1;
 float target_speed_2;
 
+//PID分频：硬件定时器10ms，每5次(50ms)执行一次PID
+#define PID_DECIMATION    5
+//速度低通滤波系数 (0~1，越小越平滑)
+#define SPEED_FILTER_ALPHA 0.3f
+static uint8_t pid_divider = 0;
+
 //pid参数
 float Kp1=0.8;//比例系数
 float Ki1=0.1;//积分系数
@@ -99,17 +105,15 @@ void motor_set_direction(uint8_t motor_id,uint8_t direction)
 float speed_calculate(int motor_id){
     float speed=0.0;
     if (motor_id==MOTOR_RIGHT){
-        speed=(float)encoder_motor1*PI*tire_R/encoder_k*100;
-        //单位mm/s
-        //timer触发的周期是10ms，所以100是1000ms/10ms
+        speed=(float)encoder_motor1*PI*tire_R/encoder_k*20;
+        //单位mm/s，PID有效周期50ms，系数=1000/50=20
         encoder_motor1=0;
     }
     else if(motor_id==MOTOR_LEFT){
-        speed=(float)encoder_motor2*PI*tire_R/encoder_k*100;
+        speed=(float)encoder_motor2*PI*tire_R/encoder_k*20;
         encoder_motor2=0;
     }
     return speed;
-    //Add similar logic for motor_id==MOTOR_LEFT if needed
 }
 
 
@@ -119,10 +123,16 @@ void MOTOR_PID_INST_IRQHandler()
     {
     //因为有很多个定时器的选项，例如load event、zero event、capture compare event等，所以需要判断是哪一个事件触发了中断
     case DL_TIMER_IIDX_LOAD:
-        speed_1=speed_calculate(MOTOR_RIGHT);
-        speed_2=speed_calculate(MOTOR_LEFT);
-        MOTOR_PID(MOTOR_RIGHT,target_speed_1);
-        MOTOR_PID(MOTOR_LEFT,target_speed_2);
+        pid_divider++;
+        if (pid_divider >= PID_DECIMATION) {
+            pid_divider = 0;
+            float raw_1 = speed_calculate(MOTOR_RIGHT);
+            float raw_2 = speed_calculate(MOTOR_LEFT);
+            speed_1 = speed_1 * (1.0f - SPEED_FILTER_ALPHA) + raw_1 * SPEED_FILTER_ALPHA;
+            speed_2 = speed_2 * (1.0f - SPEED_FILTER_ALPHA) + raw_2 * SPEED_FILTER_ALPHA;
+            MOTOR_PID(MOTOR_RIGHT,target_speed_1);
+            MOTOR_PID(MOTOR_LEFT,target_speed_2);
+        }
         break;
 
     default:
