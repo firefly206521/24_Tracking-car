@@ -1,6 +1,7 @@
 #include "key.h"
 #include "oled.h"
 #include "motor.h"
+#include "tracker.h"
 
 extern volatile uint32_t sys_tick_ms;
 
@@ -33,12 +34,14 @@ void GROUP1_IRQHandler(void)
             last_key1_ms = sys_tick_ms;
             status=(status+1)%3;
             start_flag=0;
+            integral = 0;
         }
         break;
     case KEY_KEY_4_IIDX:
         if (sys_tick_ms - last_key4_ms >= KEY_DEBOUNCE_MS) {
             last_key4_ms = sys_tick_ms;
             start_flag ^= 1;
+            integral = 0;
         }
         break;
     case MOTOR_EC2A_IIDX:
