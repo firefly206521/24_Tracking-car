@@ -66,6 +66,18 @@ void SysTick_Handler(void) {
     sys_tick_ms++;
 }
 
+// 速度阶梯测试：每10s步进100，200→800→200循环
+static float speed_ramp_target(void) {
+    static uint32_t last_switch_ms = 0;
+    static int8_t step = 0;
+    // 200,300,400,500,600,700,800,700,600,500,400,300
+    if (sys_tick_ms - last_switch_ms >= 10000) {
+        last_switch_ms = sys_tick_ms;
+        step = (step + 1) % 12;
+    }
+    return (float)(((step <= 6) ? (step + 2) : (14 - step)) * 100);
+}
+
 int main(void)
 {
     int cnt = 0;
@@ -113,16 +125,17 @@ int main(void)
         if(status==0){
             stay_idle();
         }
-        else if(status==1){
+        else if(status==1){//调试模式
             if(start_flag==0){
                 stay_idle();
             }
             else if(start_flag==1)
-            {        
+            {
             motor_set_direction(MOTOR_RIGHT, 1);
             motor_set_direction(MOTOR_LEFT, 1);
-            target_speed_1=800;
-            target_speed_2=800;
+            float spd = speed_ramp_target();
+            target_speed_1 = spd;
+            target_speed_2 = spd;
             OLED_ShowStatusAndSpeeds(status, speed_1, speed_2);
             OLED_Refresh();
             }

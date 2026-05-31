@@ -25,7 +25,7 @@ void GROUP1_IRQHandler(void)
         start_flag=0;
         break;
     case KEY_KEY_4_IIDX:
-        start_flag=1;
+        start_flag ^= 1;
         break;
     case MOTOR_EC2A_IIDX:
         encoder_motor2++;

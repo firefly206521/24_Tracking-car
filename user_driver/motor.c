@@ -5,13 +5,11 @@ volatile int encoder_motor2;
 volatile float speed_1=0;
 volatile float speed_2=0;
 
-//pid所用数量
+//pid所用数量 — 位置式 PID
 int32_t PWM_1_duty=0;
 int32_t PWM_2_duty=0;
-float last_error_1=0;
-float current_error_1=0;
-float last_error_2=0;
-float current_error_2=0;
+float integral_1=0;    // 右电机积分累加
+float integral_2=0;    // 左电机积分累加
 //电机速度
 float target_speed_1;
 float target_speed_2;
@@ -22,9 +20,9 @@ float target_speed_2;
 #define SPEED_FILTER_ALPHA 0.3f
 static uint8_t pid_divider = 0;
 
-//pid参数
-float Kp1=0.8;//比例系数
-float Ki1=0.1;//积分系数
+//pid参数 — 位置式 PID: PWM = Kp×error + Ki×integral
+float Kp1=8.0;//比例系数
+float Ki1=2.0;//积分系数
 
 
 
@@ -140,7 +138,7 @@ void MOTOR_PID_INST_IRQHandler()
     }
 }
 
-//调速,增量式pid
+//调速,位置式 PID: PWM = Kp×error + Ki×integral
 
 int32_t limit_duty(int32_t duty){
     if (duty>4000){
@@ -156,16 +154,18 @@ void MOTOR_PID(uint8_t motor_id,float target_speed){
     float error;
     if(motor_id==MOTOR_RIGHT){
         error=target_speed-speed_1;
-        current_error_1=error;
-        PWM_1_duty=limit_duty(PWM_1_duty+Kp1*(current_error_1-last_error_1)+Ki1*current_error_1);
-        last_error_1=current_error_1;
+        integral_1 += error;
+        if (integral_1 > 1500.0f) integral_1 = 1500.0f;
+        if (integral_1 < -1500.0f) integral_1 = -1500.0f;
+        PWM_1_duty=limit_duty((int32_t)(Kp1*error + Ki1*integral_1));
         motor_set_duty(MOTOR_RIGHT,(uint32_t)PWM_1_duty);
     }
     if(motor_id==MOTOR_LEFT){
         error=target_speed-speed_2;
-        current_error_2=error;
-        PWM_2_duty=limit_duty(PWM_2_duty+Kp1*(current_error_2-last_error_2)+Ki1*current_error_2);
-        last_error_2=current_error_2;
+        integral_2 += error;
+        if (integral_2 > 1500.0f) integral_2 = 1500.0f;
+        if (integral_2 < -1500.0f) integral_2 = -1500.0f;
+        PWM_2_duty=limit_duty((int32_t)(Kp1*error + Ki1*integral_2));
         motor_set_duty(MOTOR_LEFT,(uint32_t)PWM_2_duty);
     }
 }

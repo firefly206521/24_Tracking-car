@@ -1,7 +1,7 @@
 #include "tracker.h"
 #include "motor.h"
 uint8_t tracker_value[]={0,0,0,0,0,0,0};
-float Kp = 160.0f;    // 比例系数
+float Kp = 90.0f;    // 比例系数
 float Ki = 0.0f;    // 积分系数
 float error = 0;         // 当前偏差
 float last_error = 0;    // 上一次偏差，脱线时用于保持原方向
