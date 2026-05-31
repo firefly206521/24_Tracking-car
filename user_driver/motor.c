@@ -1,28 +1,25 @@
 #include "motor.h"
 
-int encoder_motor1;
-int encoder_motor2;
+volatile int encoder_motor1;
+volatile int encoder_motor2;
 volatile float speed_1=0;
 volatile float speed_2=0;
 
 //pid所用数量
-int16_t PWM_1_duty=0;
-int16_t PWM_2_duty=0;
+int32_t PWM_1_duty=0;
+int32_t PWM_2_duty=0;
 float last_error_1=0;
 float current_error_1=0;
 float last_error_2=0;
 float current_error_2=0;
 //电机速度
-volatile float speed_1;
-volatile float speed_2;
 float target_speed_1;
 float target_speed_2;
 
 //pid参数
-float Kp1=0.5;//比例系数
-float Ki1=0.4;//积分系数
-float Kp2=0.5;//比例系数
-float Ki2=0.4;//积分系数
+float Kp1=0.8;//比例系数
+float Ki1=0.1;//积分系数
+
 
 
 //初始化电机
@@ -30,13 +27,13 @@ void motor_init(uint8_t motor_id)
 {
     DL_GPIO_setPins(MOTOR_STBY_PORT,MOTOR_STBY_PIN);
     
-    if (motor_id==1){
+    if (motor_id==MOTOR_RIGHT){
         DL_GPIO_setPins(MOTOR_AIN1_PORT,MOTOR_AIN1_PIN);
         DL_GPIO_setPins(MOTOR_AIN2_PORT,MOTOR_AIN2_PIN);
         DL_Timer_setCaptureCompareValue(PWMAB_INST,0,GPIO_PWMAB_C0_IDX);
     }
 
-    else if(motor_id==2){
+    else if(motor_id==MOTOR_LEFT){
         DL_GPIO_setPins(MOTOR_BIN1_PORT,MOTOR_BIN1_PIN);
         DL_GPIO_setPins(MOTOR_BIN2_PORT,MOTOR_BIN2_PIN);
         DL_Timer_setCaptureCompareValue(PWMAB_INST,0,GPIO_PWMAB_C1_IDX);
@@ -57,10 +54,10 @@ void motor_set_duty(uint8_t motor_id,uint32_t duty)
         duty=4000;
     }
 
-    if (motor_id==1){
+    if (motor_id==MOTOR_RIGHT){
         DL_Timer_setCaptureCompareValue(PWMAB_INST,duty,GPIO_PWMAB_C0_IDX);
     }
-    else if(motor_id==2){
+    else if(motor_id==MOTOR_LEFT){
         DL_Timer_setCaptureCompareValue(PWMAB_INST,duty,GPIO_PWMAB_C1_IDX);
     }
 }
@@ -69,7 +66,7 @@ void motor_set_duty(uint8_t motor_id,uint32_t duty)
 //0:停止 1:正转 2:反转s
 void motor_set_direction(uint8_t motor_id,uint8_t direction)
 {
-    if (motor_id==1){
+    if (motor_id==MOTOR_RIGHT){
         if (direction==0){
             DL_GPIO_clearPins(MOTOR_AIN1_PORT,MOTOR_AIN1_PIN);
             DL_GPIO_clearPins(MOTOR_AIN2_PORT,MOTOR_AIN2_PIN);
@@ -83,7 +80,7 @@ void motor_set_direction(uint8_t motor_id,uint8_t direction)
             DL_GPIO_clearPins(MOTOR_AIN2_PORT,MOTOR_AIN2_PIN);
         }
     }
-    else if(motor_id==2){
+    else if(motor_id==MOTOR_LEFT){
         if (direction==0){
             DL_GPIO_clearPins(MOTOR_BIN1_PORT,MOTOR_BIN1_PIN);
             DL_GPIO_clearPins(MOTOR_BIN2_PORT,MOTOR_BIN2_PIN);
@@ -101,18 +98,18 @@ void motor_set_direction(uint8_t motor_id,uint8_t direction)
 
 float speed_calculate(int motor_id){
     float speed=0.0;
-    if (motor_id==1){
+    if (motor_id==MOTOR_RIGHT){
         speed=(float)encoder_motor1*PI*tire_R/encoder_k*100;
         //单位mm/s
-        //timer触发的周期是25ms，所以40是1000ms/25ms
+        //timer触发的周期是10ms，所以100是1000ms/10ms
         encoder_motor1=0;
     }
-    else if(motor_id==2){
+    else if(motor_id==MOTOR_LEFT){
         speed=(float)encoder_motor2*PI*tire_R/encoder_k*100;
         encoder_motor2=0;
     }
     return speed;
-    //Add similar logic for motor_id==2 if needed
+    //Add similar logic for motor_id==MOTOR_LEFT if needed
 }
 
 
@@ -122,10 +119,10 @@ void MOTOR_PID_INST_IRQHandler()
     {
     //因为有很多个定时器的选项，例如load event、zero event、capture compare event等，所以需要判断是哪一个事件触发了中断
     case DL_TIMER_IIDX_LOAD:
-        speed_1=speed_calculate(1);
-        speed_2=speed_calculate(2);
-        MOTOR_PID(1,target_speed_1);
-        MOTOR_PID(2,target_speed_2);
+        speed_1=speed_calculate(MOTOR_RIGHT);
+        speed_2=speed_calculate(MOTOR_LEFT);
+        MOTOR_PID(MOTOR_RIGHT,target_speed_1);
+        MOTOR_PID(MOTOR_LEFT,target_speed_2);
         break;
 
     default:
@@ -135,7 +132,7 @@ void MOTOR_PID_INST_IRQHandler()
 
 //调速,增量式pid
 
-uint32_t limit_duty(uint32_t duty){
+int32_t limit_duty(int32_t duty){
     if (duty>4000){
         duty=4000;
     }
@@ -147,19 +144,19 @@ uint32_t limit_duty(uint32_t duty){
 
 void MOTOR_PID(uint8_t motor_id,float target_speed){
     float error;
-    if(motor_id==1){
+    if(motor_id==MOTOR_RIGHT){
         error=target_speed-speed_1;
         current_error_1=error;
-        PWM_1_duty=PWM_1_duty+Kp1*(current_error_1-last_error_1)+Ki1*current_error_1;
+        PWM_1_duty=limit_duty(PWM_1_duty+Kp1*(current_error_1-last_error_1)+Ki1*current_error_1);
         last_error_1=current_error_1;
-        motor_set_duty(1,PWM_1_duty);
+        motor_set_duty(MOTOR_RIGHT,(uint32_t)PWM_1_duty);
     }
-    if(motor_id==2){
+    if(motor_id==MOTOR_LEFT){
         error=target_speed-speed_2;
         current_error_2=error;
-        PWM_2_duty=PWM_2_duty+Kp2*(current_error_2-last_error_2)+Ki2*current_error_2;
+        PWM_2_duty=limit_duty(PWM_2_duty+Kp1*(current_error_2-last_error_2)+Ki1*current_error_2);
         last_error_2=current_error_2;
-        motor_set_duty(2,PWM_2_duty);
+        motor_set_duty(MOTOR_LEFT,(uint32_t)PWM_2_duty);
     }
 }
 

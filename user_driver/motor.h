@@ -22,8 +22,12 @@
 #define encoder_k 260//编码器线数
 #define tire_R 48//mm
 
-extern int encoder_motor1;
-extern int encoder_motor2;
+// 电机ID宏定义：MOTOR_LEFT=channel B, MOTOR_RIGHT=channel A
+#define MOTOR_LEFT  2
+#define MOTOR_RIGHT 1
+
+extern volatile int encoder_motor1;
+extern volatile int encoder_motor2;
 extern volatile float speed_1;
 extern volatile float speed_2;
 extern float target_speed_1;

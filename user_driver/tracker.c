@@ -1,10 +1,10 @@
 #include "tracker.h"
 #include "motor.h"
 uint8_t tracker_value[]={0,0,0,0,0,0,0};
-float Kp = 40.0f;    // 比例系数
-float Ki = 0.5f;    // 积分系数
+float Kp = 160.0f;    // 比例系数
+float Ki = 0.0f;    // 积分系数
 float error = 0;         // 当前偏差
-float last_error = 0;    // 上一次偏差（这里其实没用到，保留是为了以后可能扩展）
+float last_error = 0;    // 上一次偏差，脱线时用于保持原方向
 float integral = 0;      // 积分累加和
 float pi_output = 0;     // PI 控制器的输出值
 #define BASE_SPEED  100   // 直道的基准速度（左右轮共同的基础值）
@@ -45,7 +45,7 @@ float compute_error(uint8_t *val)
     }
     // 如果全部是白线（小车完全脱线了）
     if (sum == 0) {
-        return last_error * 100.0f;   // 返回上一次的误差，让小车维持原方向（保守策略）
+        return last_error;   // 返回上一次的误差，让小车维持原方向（保守策略）
     }
     // 计算黑线的加权平均位置（值在 0 ~ 600 之间，中心是 300）
     float position = (float)weighted_sum / sum;
@@ -76,11 +76,11 @@ void track_line(){
     if (left_speed < MIN_SPEED)  left_speed = MIN_SPEED;
     if (right_speed > MAX_SPEED) right_speed = MAX_SPEED;
     if (right_speed < MIN_SPEED) right_speed = MIN_SPEED;
-    // ⑨ 设置电机方向和占空比（假设方向1是前进）
-    motor_set_direction(1, 1);       // 左电机正转
-    motor_set_direction(2, 1);       // 右电机正转
-    target_speed_1 = left_speed;     // 左电机目标速度
-    target_speed_2 = right_speed;    // 右电机目标速度
+    // ⑨ 设置电机方向和目标速度
+    motor_set_direction(MOTOR_LEFT, 1);   // 左电机正转 (motor 2)
+    motor_set_direction(MOTOR_RIGHT, 1);  // 右电机正转 (motor 1)
+    target_speed_2 = left_speed;     // MOTOR_LEFT=2 → 左电机目标速度
+    target_speed_1 = right_speed;    // MOTOR_RIGHT=1 → 右电机目标速度
     
 }
 
