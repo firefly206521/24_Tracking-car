@@ -42,18 +42,24 @@
 #include "mpu_nav.h"
 #include "mpu_port.h"
 
-int status=0;//改变状态机
-int start_flag=0;//确定改变状态
-int encoder_motor1=0;
-int encoder_motor2=0;
-float target_speed_1=0;
-float target_speed_2=0;
-extern int16_t PWM_1_duty;
-extern volatile float speed_1;
-extern volatile float speed_2;
-extern uint8_t tracker_value[];
-
 extern volatile uint32_t sys_tick_ms;
+
+// ====== 模式3 状态机 ======
+typedef enum {
+    M3_IDLE = 0,
+    M3_AC_DIAG,
+    M3_CB_ARC,
+    M3_BD_DIAG,
+    M3_DA_ARC,
+    M3_DONE
+} m3_state_t;
+
+static m3_state_t m3_state = M3_IDLE;
+
+#define M3_KP_HEADING   2.0f
+#define M3_KP_TRACKER   80.0f
+#define M3_BASE_SPEED   300.0f
+#define M3_ARC_DONE_DEG 170.0f
 
 // SysTick 中断服务函数 (每 1ms 触发一次)
 void SysTick_Handler(void) {
@@ -153,7 +159,75 @@ int main(void)
             // cnt++;
             }
         }
-        
+        else if (status == 3) {
+            switch (m3_state) {
+            case M3_IDLE:
+                mpu_set_ref(yaw);
+                motor_set_direction(1, 1);
+                motor_set_direction(2, 1);
+                target_speed_1 = M3_BASE_SPEED;
+                target_speed_2 = M3_BASE_SPEED;
+                m3_state = M3_AC_DIAG;
+                break;
+            case M3_AC_DIAG: {
+                float err  = mpu_heading_error(yaw);
+                float corr = M3_KP_HEADING * err;
+                target_speed_1 = mpu_clamp_speed(M3_BASE_SPEED - corr);
+                target_speed_2 = mpu_clamp_speed(M3_BASE_SPEED + corr);
+                if (tracker_value[2]) {
+                    mpu_arc_begin(yaw);
+                    m3_state = M3_CB_ARC;
+                }
+                break;
+            }
+            case M3_CB_ARC: {
+                int8_t pos = 0;
+                if (tracker_value[0]) pos -= 2;
+                if (tracker_value[1]) pos -= 1;
+                if (tracker_value[3]) pos += 1;
+                if (tracker_value[4]) pos += 2;
+                float corr = M3_KP_TRACKER * pos;
+                target_speed_1 = mpu_clamp_speed(M3_BASE_SPEED + corr);
+                target_speed_2 = mpu_clamp_speed(M3_BASE_SPEED - corr);
+                if (mpu_arc_progress(yaw) > M3_ARC_DONE_DEG) {
+                    m3_state = M3_BD_DIAG;
+                }
+                break;
+            }
+            case M3_BD_DIAG: {
+                float target = mpu_normalize(mpu_get_ref() + 180.0f);
+                float err    = mpu_normalize(yaw - target);
+                float corr   = M3_KP_HEADING * err;
+                target_speed_1 = mpu_clamp_speed(M3_BASE_SPEED - corr);
+                target_speed_2 = mpu_clamp_speed(M3_BASE_SPEED + corr);
+                if (tracker_value[2]) {
+                    mpu_arc_begin(yaw);
+                    m3_state = M3_DA_ARC;
+                }
+                break;
+            }
+            case M3_DA_ARC: {
+                int8_t pos = 0;
+                if (tracker_value[0]) pos -= 2;
+                if (tracker_value[1]) pos -= 1;
+                if (tracker_value[3]) pos += 1;
+                if (tracker_value[4]) pos += 2;
+                float corr = M3_KP_TRACKER * pos;
+                target_speed_1 = mpu_clamp_speed(M3_BASE_SPEED + corr);
+                target_speed_2 = mpu_clamp_speed(M3_BASE_SPEED - corr);
+                if (mpu_arc_progress(yaw) > M3_ARC_DONE_DEG) {
+                    m3_state = M3_DONE;
+                }
+                break;
+            }
+            case M3_DONE:
+                target_speed_1 = 0;
+                target_speed_2 = 0;
+                motor_set_direction(1, 0);
+                motor_set_direction(2, 0);
+                break;
+            }
+        }
 
 
 

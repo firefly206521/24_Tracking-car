@@ -3,6 +3,8 @@
 
 #include "ti_msp_dl_config.h"
 
+extern uint8_t tracker_value[];
+
 void tracker_get_value();
 void track_line();
 //VCC<-->5V

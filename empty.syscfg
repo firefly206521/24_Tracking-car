@@ -34,7 +34,7 @@ const divider9       = system.clockTree["UDIV"];
 divider9.divideValue = 2;
 
 const multiplier2         = system.clockTree["PLL_QDIV"];
-multiplier2.multiplyValue = 4;
+multiplier2.multiplyValue = 5;
 
 const mux4       = system.clockTree["EXHFMUX"];
 mux4.inputSelect = "EXHFMUX_XTAL";
@@ -42,12 +42,8 @@ mux4.inputSelect = "EXHFMUX_XTAL";
 const mux8       = system.clockTree["HSCLKMUX"];
 mux8.inputSelect = "HSCLKMUX_SYSPLL0";
 
-const mux12       = system.clockTree["SYSPLLMUX"];
-mux12.inputSelect = "zSYSPLLMUX_HFCLK";
-
 const pinFunction4     = system.clockTree["HFXT"];
 pinFunction4.inputFreq = 40;
-pinFunction4.enable    = true;
 
 Board.peripheral.swdioPin.$assign = "PA19";
 
@@ -231,11 +227,8 @@ UART1.rxPinConfig.passedPeripheralType = scripting.forceWrite("Digital");
  * version of the tool will not impact the pinmux you originally saw.  These lines can be completely deleted in order to
  * re-solve from scratch.
  */
-pinFunction4.peripheral.$suggestSolution           = "SYSCTL";
-pinFunction4.peripheral.hfxInPin.$suggestSolution  = "PA5";
-pinFunction4.peripheral.hfxOutPin.$suggestSolution = "PA6";
-Board.peripheral.$suggestSolution                  = "DEBUGSS";
-Board.peripheral.swclkPin.$suggestSolution         = "PA20";
-I2C2.peripheral.$suggestSolution                   = "I2C0";
-TIMER1.peripheral.$suggestSolution                 = "TIMA0";
-UART1.peripheral.$suggestSolution                  = "UART0";
+Board.peripheral.$suggestSolution          = "DEBUGSS";
+Board.peripheral.swclkPin.$suggestSolution = "PA20";
+I2C2.peripheral.$suggestSolution           = "I2C0";
+TIMER1.peripheral.$suggestSolution         = "TIMA0";
+UART1.peripheral.$suggestSolution          = "UART0";

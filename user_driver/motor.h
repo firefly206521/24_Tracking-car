@@ -21,6 +21,14 @@
 #define PI 3.141
 #define encoder_k 260//编码器线数
 #define tire_R 48//mm
+
+extern int encoder_motor1;
+extern int encoder_motor2;
+extern volatile float speed_1;
+extern volatile float speed_2;
+extern float target_speed_1;
+extern float target_speed_2;
+
 void motor_set_direction(uint8_t motor_id,uint8_t direction);
 void motor_init(uint8_t motor_id);
 void motor_set_duty(uint8_t motor_id,uint32_t duty);

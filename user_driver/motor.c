@@ -1,19 +1,22 @@
 #include "motor.h"
 
-extern int encoder_motor1;
-extern int encoder_motor2;
+int encoder_motor1;
+int encoder_motor2;
 volatile float speed_1=0;
 volatile float speed_2=0;
 
 //pid所用数量
 int16_t PWM_1_duty=0;
 int16_t PWM_2_duty=0;
-extern float target_speed_1;
-extern float target_speed_2;
 float last_error_1=0;
 float current_error_1=0;
 float last_error_2=0;
 float current_error_2=0;
+//电机速度
+volatile float speed_1;
+volatile float speed_2;
+float target_speed_1;
+float target_speed_2;
 
 //pid参数
 float Kp1=0.5;//比例系数

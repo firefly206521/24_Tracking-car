@@ -1,12 +1,7 @@
 #include "motor.h"
 #include "oled.h"
-extern int encoder_motor1;
-extern int encoder_motor2;
-extern int target_speed_1;
-extern int target_speed_2;
-extern int status;
-extern int speed_1;
-extern int speed_2;
+#include "key.h"
+
 void stay_idle(void)
 {   
 encoder_motor1=0;

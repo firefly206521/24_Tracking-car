@@ -2,10 +2,9 @@
 #include "oled.h"
 #include "motor.h"
 
-extern int status;
-extern int encoder_motor1;
-extern int encoder_motor2;
-extern int start_flag;
+int status;//改变状态机
+int start_flag;//确定改变状态
+
 uint8_t get_key_value(uint32_t key)
 {
 uint8_t high_bits = DL_GPIO_readPins(KEY_PORT, key);

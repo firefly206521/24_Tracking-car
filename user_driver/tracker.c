@@ -10,8 +10,6 @@ float pi_output = 0;     // PI 控制器的输出值
 #define BASE_SPEED  100   // 直道的基准速度（左右轮共同的基础值）
 #define MAX_SPEED   800  // 最高速度，防止超速冲出赛道
 #define MIN_SPEED   50  // 最低速度，防止电机停转或无力
-extern float target_speed_1;
-extern float target_speed_2;
 
 
 extern uint8_t get_gpio_value(GPIO_Regs* gpio_port, uint32_t gpio)
