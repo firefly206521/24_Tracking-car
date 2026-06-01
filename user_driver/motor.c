@@ -131,7 +131,7 @@ void MOTOR_PID_INST_IRQHandler()
             speed_2 = speed_2 * (1.0f - SPEED_FILTER_ALPHA) + raw_2 * SPEED_FILTER_ALPHA;
             // 循迹控制：20Hz 固定周期更新目标速度
             if (tracking_active) {
-                track_line(&pid_state_300, &pid_params_300);
+                track_line();
             }
             MOTOR_PID(MOTOR_RIGHT,target_speed_1);
             MOTOR_PID(MOTOR_LEFT,target_speed_2);
