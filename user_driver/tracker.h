@@ -5,10 +5,26 @@
 
 extern uint8_t tracker_value[];
 extern volatile uint8_t tracking_active;
-extern float integral;
+
+typedef struct {
+    float Kp;
+    float Ki;
+    float Kd;
+} PID_Params;
+
+typedef struct {
+    float error;
+    float last_error;
+    float integral;
+} PID_State;
+
+extern PID_Params pid_params_100;
+extern PID_Params pid_params_300;
+extern PID_State pid_state_100;
+extern PID_State pid_state_300;
 
 void tracker_get_value();
-void track_line();
+void track_line(PID_State *pid_state, PID_Params *pid_params);
 //VCC<-->5V
 //GND
 //L1<-->PB8

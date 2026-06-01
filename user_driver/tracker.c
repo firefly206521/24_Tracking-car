@@ -2,12 +2,13 @@
 #include "motor.h"
 uint8_t tracker_value[]={0,0,0,0,0,0,0};
 volatile uint8_t tracking_active = 0;  // 循迹模式激活标志
-float Kp = 320.0f;    // 比例系数
-float Ki = 1.6f;    // 积分系数
-float Kd = 0.0f;     // 微分系数，阻尼振荡
-float error = 0;         // 当前偏差
-float last_error = 0;    // 上一次偏差，用于微分项+脱线保持
-float integral = 0;      // 积分累加和
+
+
+PID_Params pid_params_100 = {90.0f, 0.0f, 0.0f};
+PID_Params pid_params_300 = {320.0f, 1.6f, 0.0f};
+PID_State pid_state_100 = {0.0f, 0.0f, 0.0f};
+PID_State pid_state_300 = {0.0f, 0.0f, 0.0f};
+
 float pid_output = 0;     // PID 控制器的输出值
 #define BASE_SPEED  300   // 直道的基准速度（左右轮共同的基础值）
 #define MAX_SPEED   800  // 最高速度，防止超速冲出赛道
@@ -35,7 +36,7 @@ void tracker_get_value()
     tracker_value[5] = get_gpio_value(tracker_R2_PORT, tracker_R2_PIN);
     tracker_value[6] = get_gpio_value(tracker_R0_PORT, tracker_R0_PIN); 
 }
-float compute_error(uint8_t *val)
+float compute_error(uint8_t *val,PID_State *pid_state)
 {
     int sum = 0;          // 记录有几个传感器检测到黑线
     int weighted_sum = 0; // 记录这些传感器位置（索引）的和，乘以100避免浮点
@@ -47,7 +48,7 @@ float compute_error(uint8_t *val)
     }
     // 如果全部是白线（小车完全脱线了）
     if (sum == 0) {
-        return last_error;   // 返回上一次的误差，让小车维持原方向（保守策略）
+        return pid_state->last_error;   // 返回上一次的误差，让小车维持原方向（保守策略）
     }
     // 计算黑线的加权平均位置（值在 0 ~ 600 之间，中心是 300）
     float position = (float)weighted_sum / sum;
@@ -56,19 +57,19 @@ float compute_error(uint8_t *val)
     return err;
 }
 
-void track_line(){
+void track_line(PID_State *pid_state, PID_Params *pid_params){
     // ① 读取传感器数据到 tracker_value 数组
     tracker_get_value();
     // ② 计算当前偏差
-    error = compute_error(tracker_value);
+    pid_state->error = compute_error(tracker_value, pid_state);
     // ③ 累加积分
-    integral += error;
-    if (integral > 30.0f) integral = 30.0f;
-    if (integral < -30.0f) integral = -30.0f;
+    pid_state->integral += pid_state->error;
+    if (pid_state->integral > 30.0f) pid_state->integral = 30.0f;
+    if (pid_state->integral < -30.0f) pid_state->integral = -30.0f;
     // ④ PID 控制量 = P + I + D（由 50ms ISR 定时调用）
-    float derivative = error - last_error;
-    pid_output = Kp * error + Ki * integral + Kd * derivative;
-    last_error = error;
+    float derivative = pid_state->error - pid_state->last_error;
+    pid_output = pid_params->Kp * pid_state->error + pid_params->Ki * pid_state->integral + pid_params->Kd * derivative;
+    pid_state->last_error = pid_state->error;
     // ⑤ 转化为左右轮速度差
     int16_t left_speed  = BASE_SPEED + (int16_t)pid_output;
     int16_t right_speed = BASE_SPEED - (int16_t)pid_output;
