@@ -29,6 +29,7 @@ typedef struct {
 
 extern uint8_t tracker_value[];
 extern volatile uint8_t tracking_active;
+<<<<<<< HEAD
 extern TrackLevelConfig track_levels[TRACK_NUM_LEVELS];
 extern TrackState track_state;
 
@@ -37,6 +38,12 @@ void track_line(void);
 void track_set_direction(TrackDirection dir);
 void track_reset_level(void);
 
+=======
+extern float integral;
+
+void tracker_get_value();
+void track_line();
+>>>>>>> parent of e24348d (把参数改成了结构体，为后续多级速度控制做准备，注意key文件里还没改。)
 //VCC<-->5V
 //GND
 //L1<-->PB8
