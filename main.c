@@ -49,7 +49,6 @@ void SysTick_Handler(void) {
 
 int main(void)
 {
-    int cnt = 0;
 
     SYSCFG_DL_init();
     delay_ms(1000);//等待电源稳定，保证IIC上电成功
@@ -68,7 +67,6 @@ int main(void)
     float pitch = 0, roll = 0, yaw = 0;
 
 
-    char yaw_buf[50];
     char line0[20], line1[20], line2[20], line3[20];
 
     //给电机和案件引脚设置为开启中断功能
