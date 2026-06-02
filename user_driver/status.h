@@ -4,9 +4,10 @@
 #include <stdint.h>
 
 typedef enum {
-    STATUS_IDLE       = 0,
-    STATUS_TRACKING   = 1,   // 循迹模式 (原 status 2)
-    STATUS_MPU_NAV    = 2,   // 陀螺仪导航模式 (原 status 3)
+    STATUS_IDLE        = 0,
+    STATUS_DIST        = 1,   // 直行 1750 脉冲后停车
+    STATUS_MPU_NAV     = 2,   // 陀螺仪导航
+    STATUS_LINE_TRACK  = 3,   // 循迹模式
     STATUS_COUNT
 } system_status_t;
 

@@ -2,10 +2,12 @@
 #include "oled.h"
 #include "status.h"
 #include "tracker.h"
+#include "straight.h"
 
 void stay_idle(void)
 {
 tracking_active = 0;
+straight_force_stop();
 encoder_motor1=0;
 encoder_motor2=0;
 integral_1=0;

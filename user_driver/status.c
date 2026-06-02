@@ -5,27 +5,21 @@
 #include "idle.h"
 #include "mpu_nav.h"
 #include "pid_utils.h"
+#include "straight.h"
+
+#define S1_DIST_PULSES   1750   // status1 目标脉冲数
 
 system_status_t sys_status = STATUS_IDLE;
 int              start_flag = 0;
 
-#define M3_BASE_SPEED 800.0f
-#define M3_RAMP_STEP  10.0f    // 极慢斜坡，诊断用
-
-static uint8_t    m3_init    = 0;
-static float      m3_ramp    = 0.0f;
-static float      m3_ref_yaw = 0.0f;
-static pid_ctrl_t m3_heading_pid = {
-    .Kp = 2.0f,
-    .Ki = 0.3f,
-    .Kd = 0.0f,
-    .integral_max = 100.0f
-};
+static uint8_t s1_init = 0;
+static uint8_t m3_init = 0;
 
 void status_cycle_next(void)
 {
     sys_status = (sys_status + 1) % STATUS_COUNT;
     start_flag = 0;
+    s1_init    = 0;
     m3_init    = 0;
 }
 
@@ -34,6 +28,7 @@ void status_toggle_start(void)
     start_flag ^= 1;
     pid_line.integral = 0;
     mpu_reset_zero(g_raw_yaw);
+    s1_init = 0;
     m3_init = 0;
 }
 
@@ -44,7 +39,40 @@ void status_run(float yaw)
         stay_idle();
         break;
 
-    case STATUS_TRACKING:
+    case STATUS_DIST:
+        if (start_flag == 0) {
+            stay_idle();
+            s1_init = 0;
+        }
+        else if (!s1_init) {
+            straight_begin(yaw);
+            s1_init = 1;
+        }
+        // straight_run 由 ISR 驱动，这里只检查是否到位
+        if (straight_get_distance() / 2 >= S1_DIST_PULSES) {
+            start_flag = 0;
+            straight_force_stop();
+            target_speed_1 = 0;
+            target_speed_2 = 0;
+            motor_brake(MOTOR_RIGHT);
+            motor_brake(MOTOR_LEFT);
+        }
+        break;
+
+    case STATUS_MPU_NAV:
+        if (start_flag == 0) {
+            stay_idle();
+        }
+        else {
+            if (!m3_init) {
+                straight_nav_begin(yaw);
+                m3_init = 1;
+            }
+            straight_nav_run(yaw);
+        }
+        break;
+
+    case STATUS_LINE_TRACK:
         if (start_flag == 0) {
             tracking_active = 0;
             stay_idle();
@@ -54,32 +82,6 @@ void status_run(float yaw)
             motor_set_direction(MOTOR_RIGHT, 1);
         }
         break;
-
-    case STATUS_MPU_NAV: {
-        if (start_flag == 0) {
-            stay_idle();
-        }
-        else if (!m3_init) {
-            m3_ref_yaw = yaw;
-            m3_ramp = 0.0f;
-            motor_set_direction(MOTOR_RIGHT, 1);
-            motor_set_direction(MOTOR_LEFT, 1);
-            m3_init = 1;
-        }
-        // 斜坡启动：从 0 加速到 M3_BASE_SPEED，消除落地瞬态
-        if (m3_ramp < M3_BASE_SPEED) {
-            m3_ramp += M3_RAMP_STEP;
-            if (m3_ramp > M3_BASE_SPEED) m3_ramp = M3_BASE_SPEED;
-        }
-        float err  = -normalize_angle(yaw - m3_ref_yaw);
-        float corr = pid_compute(&m3_heading_pid, err);
-        target_speed_2 = clamp_value(m3_ramp - corr, 0.0f, 1000.0f);
-        target_speed_1 = clamp_value(m3_ramp + corr, 0.0f, 1000.0f);
-        break;
-        // target_speed_1 = m3_ramp;
-        // target_speed_2 = m3_ramp;
-        // break;
-    }
 
     default:
         break;

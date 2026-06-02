@@ -16,5 +16,10 @@ uint8_t straight_run(float yaw);
 uint8_t straight_is_active(void);
 int32_t straight_get_distance(void);
 uint8_t straight_line_detected(void);
+void    straight_force_stop(void);
+
+// 主循环直行（不设 straight_active，无退出条件，给 status2 用）
+void    straight_nav_begin(float yaw);
+void    straight_nav_run(float yaw);
 
 #endif

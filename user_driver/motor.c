@@ -23,7 +23,7 @@ float target_speed_2;
 static uint8_t pid_divider = 0;
 
 //pid参数 — 位置式 PID: PWM = Kp×error + Ki×integral
-float Kp1=.0;//比例系数
+float Kp1=12.0;//比例系数
 float Ki1=2.0;//积分系数
 
 
@@ -99,6 +99,18 @@ void motor_set_direction(uint8_t motor_id,uint8_t direction)
             DL_GPIO_setPins(MOTOR_BIN1_PORT,MOTOR_BIN1_PIN);
             DL_GPIO_clearPins(MOTOR_BIN2_PORT,MOTOR_BIN2_PIN);
         }
+    }
+}
+
+// TB6612 制动：IN1 和 IN2 同时 HIGH，电机端子短路制动
+void motor_brake(uint8_t motor_id)
+{
+    if (motor_id == MOTOR_RIGHT) {
+        DL_GPIO_setPins(MOTOR_AIN1_PORT, MOTOR_AIN1_PIN);
+        DL_GPIO_setPins(MOTOR_AIN2_PORT, MOTOR_AIN2_PIN);
+    } else if (motor_id == MOTOR_LEFT) {
+        DL_GPIO_setPins(MOTOR_BIN1_PORT, MOTOR_BIN1_PIN);
+        DL_GPIO_setPins(MOTOR_BIN2_PORT, MOTOR_BIN2_PIN);
     }
 }
 
