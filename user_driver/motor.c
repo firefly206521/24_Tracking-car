@@ -19,11 +19,11 @@ float target_speed_2;
 //PID分频：硬件定时器10ms，每5次(50ms)执行一次PID
 #define PID_DECIMATION    1
 //速度低通滤波系数 (0~1，越小越平滑)
-#define SPEED_FILTER_ALPHA 0.3f
+#define SPEED_FILTER_ALPHA 0.7f
 static uint8_t pid_divider = 0;
 
 //pid参数 — 位置式 PID: PWM = Kp×error + Ki×integral
-float Kp1=8.0;//比例系数
+float Kp1=.0;//比例系数
 float Ki1=2.0;//积分系数
 
 
