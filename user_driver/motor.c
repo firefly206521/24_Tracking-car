@@ -6,6 +6,7 @@ volatile int encoder_motor1;
 volatile int encoder_motor2;
 volatile float speed_1=0;
 volatile float speed_2=0;
+uint8_t all_lost =0;
 
 //pid所用数量 — 位置式 PID
 int32_t PWM_1_duty=0;
@@ -133,9 +134,6 @@ float speed_calculate(int motor_id){
 
 void MOTOR_PID_INST_IRQHandler()
 {
-    static float  track_nav_ref = 0;
-    static uint8_t track_nav_ok  = 0;
-
     switch (DL_Timer_getPendingInterrupt(MOTOR_PID_INST))
     {
     //因为有很多个定时器的选项，例如load event、zero event、capture compare event等，所以需要判断是哪一个事件触发了中断
@@ -150,21 +148,23 @@ void MOTOR_PID_INST_IRQHandler()
             // 统一读取传感器，20Hz 路由：循迹 / 直行
             tracker_get_value();
             if (tracking_active) {
-                uint8_t all_lost = 1;
+
                 for (int i = 0; i < 7; i++) {
-                    if (tracker_value[i]) { all_lost = 0; break; }
+                    all_lost+= tracker_value[i];
+                }
+                if(all_lost==7){
+                    all_lost=1;
+                }
+                else{
+                    all_lost=0;
                 }
                 if (all_lost) {
                     float snapped = (g_yaw > 90.0f || g_yaw < -90.0f) ? 180.0f : 0.0f;
-                    if (!track_nav_ok || snapped != track_nav_ref) {
-                        straight_nav_update_ref(snapped);
-                        track_nav_ref = snapped;
-                        track_nav_ok  = 1;
-                    }
+                    straight_nav_update_ref(snapped);
                     straight_nav_run(g_yaw);
-                } else {
+                }
+                else {
                     track_line();
-                    track_nav_ok = 0;
                 }
             }
             if (straight_is_active()) {
