@@ -21,5 +21,6 @@ void    straight_force_stop(void);
 // 主循环直行（不设 straight_active，无退出条件，给 status2 用）
 void    straight_nav_begin(float yaw);
 void    straight_nav_run(float yaw);
+void    straight_nav_update_ref(float yaw);
 
 #endif

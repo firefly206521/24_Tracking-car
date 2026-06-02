@@ -5,13 +5,13 @@ uint8_t tracker_value[] = {0,0,0,0,0,0,0};
 volatile uint8_t tracking_active = 0;
 
 pid_ctrl_t pid_line = {
-    .Kp = 80.0f,
-    .Ki = 0.0f,
+    .Kp = 750.0f,
+    .Ki = 10.0f,
     .Kd = 0.0f,
     .integral_max = 30.0f
 };
 
-#define BASE_SPEED  800
+#define BASE_SPEED  500
 #define MAX_SPEED   1200
 #define MIN_SPEED   50
 

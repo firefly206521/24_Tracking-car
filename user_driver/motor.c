@@ -133,6 +133,9 @@ float speed_calculate(int motor_id){
 
 void MOTOR_PID_INST_IRQHandler()
 {
+    static float  track_nav_ref = 0;
+    static uint8_t track_nav_ok  = 0;
+
     switch (DL_Timer_getPendingInterrupt(MOTOR_PID_INST))
     {
     //因为有很多个定时器的选项，例如load event、zero event、capture compare event等，所以需要判断是哪一个事件触发了中断
@@ -152,10 +155,16 @@ void MOTOR_PID_INST_IRQHandler()
                     if (tracker_value[i]) { all_lost = 0; break; }
                 }
                 if (all_lost) {
-                    tracking_active = 0;
-                    straight_begin(g_yaw);
+                    float snapped = (g_yaw > 90.0f || g_yaw < -90.0f) ? 180.0f : 0.0f;
+                    if (!track_nav_ok || snapped != track_nav_ref) {
+                        straight_nav_update_ref(snapped);
+                        track_nav_ref = snapped;
+                        track_nav_ok  = 1;
+                    }
+                    straight_nav_run(g_yaw);
                 } else {
                     track_line();
+                    track_nav_ok = 0;
                 }
             }
             if (straight_is_active()) {

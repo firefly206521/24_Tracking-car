@@ -12,15 +12,17 @@
 system_status_t sys_status = STATUS_IDLE;
 int              start_flag = 0;
 
-static uint8_t s1_init = 0;
-static uint8_t m3_init = 0;
+static uint8_t s1_init    = 0;
+static uint8_t m3_init    = 0;
+static uint8_t track_init = 0;
 
 void status_cycle_next(void)
 {
     sys_status = (sys_status + 1) % STATUS_COUNT;
-    start_flag = 0;
-    s1_init    = 0;
-    m3_init    = 0;
+    start_flag  = 0;
+    s1_init     = 0;
+    m3_init     = 0;
+    track_init  = 0;
 }
 
 void status_toggle_start(void)
@@ -28,8 +30,9 @@ void status_toggle_start(void)
     start_flag ^= 1;
     pid_line.integral = 0;
     mpu_reset_zero(g_raw_yaw);
-    s1_init = 0;
-    m3_init = 0;
+    s1_init    = 0;
+    m3_init    = 0;
+    track_init = 0;
 }
 
 void status_run(float yaw)
@@ -76,10 +79,16 @@ void status_run(float yaw)
         if (start_flag == 0) {
             tracking_active = 0;
             stay_idle();
+            track_init = 0;
         } else {
-            tracking_active = 1;
-            motor_set_direction(MOTOR_LEFT, 1);
-            motor_set_direction(MOTOR_RIGHT, 1);
+            if (!track_init) {
+                float snapped = (yaw > 90.0f || yaw < -90.0f) ? 180.0f : 0.0f;
+                straight_begin(snapped);
+                tracking_active = 1;
+                motor_set_direction(MOTOR_LEFT, 1);
+                motor_set_direction(MOTOR_RIGHT, 1);
+                track_init = 1;
+            }
         }
         break;
 

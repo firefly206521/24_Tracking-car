@@ -67,6 +67,7 @@ uint8_t straight_run(float yaw)
 
 void straight_nav_begin(float yaw)
 {
+    straight_active    = 1;
     straight_ref_yaw = yaw;
     straight_ramp    = 0.0f;
     pid_reset(&straight_pid);
@@ -77,6 +78,12 @@ void straight_nav_begin(float yaw)
 void straight_nav_run(float yaw)
 {
     straight_steer(yaw);
+}
+
+void straight_nav_update_ref(float yaw)
+{
+    straight_ref_yaw = yaw;
+    pid_reset(&straight_pid);
 }
 
 int32_t straight_get_distance(void)
