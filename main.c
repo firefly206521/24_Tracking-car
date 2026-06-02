@@ -83,6 +83,7 @@ int main(void)
         while(DMP_Read_Data(&pitch,&roll,&yaw));
         g_raw_yaw = yaw;
         yaw       = mpu_apply_calib(yaw);
+        yaw       = -yaw;  // MPU6050 芯片朝下安装，yaw 方向取反
         g_yaw     = yaw;
 
         // snprintf(yaw_buf, sizeof(yaw_buf), "Yaw: %.2f cnt:%d\r\n", yaw,cnt);

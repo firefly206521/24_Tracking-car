@@ -13,6 +13,7 @@ typedef struct {
 } pid_ctrl_t;
 
 float pid_compute(pid_ctrl_t *pid, float error);
+void   pid_reset(pid_ctrl_t *pid);
 float normalize_angle(float a);
 float clamp_value(float val, float min, float max);
 

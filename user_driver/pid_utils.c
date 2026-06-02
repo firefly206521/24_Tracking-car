@@ -12,6 +12,14 @@ float pid_compute(pid_ctrl_t *pid, float error)
     return pid->output;
 }
 
+void pid_reset(pid_ctrl_t *pid)
+{
+    pid->error      = 0.0f;
+    pid->last_error = 0.0f;
+    pid->integral   = 0.0f;
+    pid->output     = 0.0f;
+}
+
 float normalize_angle(float a)
 {
     while (a > 180.0f) a -= 360.0f;

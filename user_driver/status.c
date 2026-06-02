@@ -14,7 +14,7 @@ int              start_flag = 0;
 static uint8_t    m3_init    = 0;
 static float      m3_ref_yaw = 0.0f;
 static pid_ctrl_t m3_heading_pid = {
-    .Kp = 3.0f,
+    .Kp = 2.0f,
     .Ki = 0.0f,
     .Kd = 0.0f,
     .integral_max = 0.0f
@@ -63,6 +63,7 @@ void status_run(float yaw)
             motor_set_direction(MOTOR_LEFT, 1);
             target_speed_1 = M3_BASE_SPEED;
             target_speed_2 = M3_BASE_SPEED;
+            pid_reset(&m3_heading_pid);
             m3_init = 1;
         }
         float err  = normalize_angle(yaw - m3_ref_yaw);

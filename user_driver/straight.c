@@ -24,6 +24,7 @@ void straight_begin(float yaw)
     straight_active    = 1;
     straight_ref_yaw   = yaw;
     straight_enc_start = straight_enc_acc;
+    pid_reset(&straight_pid);
 }
 
 uint8_t straight_is_active(void)
