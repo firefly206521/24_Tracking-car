@@ -12,6 +12,8 @@ integral_1=0;
 integral_2=0;
 motor_set_direction(MOTOR_LEFT,0);
 motor_set_direction(MOTOR_RIGHT,0);
+motor_set_duty(MOTOR_LEFT,0);
+motor_set_duty(MOTOR_RIGHT,0);
 target_speed_1=0;
 target_speed_2=0;
 OLED_ShowStatusAndSpeeds(sys_status, speed_1, speed_2);

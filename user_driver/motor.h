@@ -36,6 +36,7 @@ extern float integral_1;
 extern float integral_2;
 extern int32_t PWM_1_duty;
 extern int32_t PWM_2_duty;
+extern volatile uint8_t nav_curve_mode;
 
 void motor_set_direction(uint8_t motor_id,uint8_t direction);
 void motor_init(uint8_t motor_id);

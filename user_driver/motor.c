@@ -15,6 +15,7 @@ float integral_2=0;    // 左电机积分累加
 //电机速度
 float target_speed_1;
 float target_speed_2;
+volatile uint8_t nav_curve_mode = 0;
 
 //PID分频：硬件定时器10ms，每5次(50ms)执行一次PID
 #define PID_DECIMATION    1
@@ -23,7 +24,7 @@ float target_speed_2;
 static uint8_t pid_divider = 0;
 
 //pid参数 — 位置式 PID: PWM = Kp×error + Ki×integral
-float Kp1=.0;//比例系数
+float Kp1=8.0;//比例系数
 float Ki1=2.0;//积分系数
 
 
@@ -140,8 +141,10 @@ void MOTOR_PID_INST_IRQHandler()
                     if (tracker_value[i]) { all_lost = 0; break; }
                 }
                 if (all_lost) {
-                    tracking_active = 0;
-                    straight_begin(g_yaw);
+                    if (!nav_curve_mode) {
+                        tracking_active = 0;
+                        straight_begin(g_yaw);
+                    }
                 } else {
                     track_line();
                 }
