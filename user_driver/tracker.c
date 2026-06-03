@@ -5,7 +5,7 @@ uint8_t tracker_value[] = {0,0,0,0,0,0,0};
 volatile uint8_t tracking_active = 0;
 
 pid_ctrl_t pid_line = {
-    .Kp = 750.0f,
+    .Kp = 900.0f,
     .Ki = 10.0f,
     .Kd = 0.0f,
     .integral_max = 30.0f
