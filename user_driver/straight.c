@@ -6,7 +6,7 @@
 volatile int32_t straight_enc_acc = 0;
 volatile float  g_yaw = 0;
 
-static uint8_t  straight_active = 0;
+uint8_t  straight_active = 0;
 static float    straight_ref_yaw;
 static int32_t  straight_enc_start;
 

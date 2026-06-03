@@ -7,7 +7,7 @@
 #include "pid_utils.h"
 #include "straight.h"
 
-#define S1_DIST_PULSES   1750   // status1 目标脉冲数
+#define S1_DIST_PULSES   1750
 
 system_status_t sys_status = STATUS_IDLE;
 int              start_flag = 0;
@@ -15,6 +15,40 @@ int              start_flag = 0;
 static uint8_t s1_init    = 0;
 static uint8_t m3_init    = 0;
 static uint8_t track_init = 0;
+extern volatile int encoder_motor1;
+extern volatile int encoder_motor2;
+
+// ===== 第三问状态机 =====
+#define S3_BASE_SPEED     600.0f
+#define S3_RAMP_STEP      20.0f
+#define S3_SPEED_MAX      700.0f
+#define S3_PRE_TURN_1     43.0f
+#define S3_PRE_TURN_2     54.0f
+#define S3_LINE_DEBOUNCE  3
+
+enum { S3_STRAIGHT1=0, S3_CURVE1, S3_STRAIGHT2, S3_CURVE2, S3_DONE };
+static uint8_t  s3_state = S3_STRAIGHT1;
+static uint8_t  s3_init  = 0;
+static float    s3_ref_yaw;
+static float    s3_ramp;
+static uint8_t  s3_line_cnt, s3_on_line, s3_on_line_prev;
+static uint32_t s3_track_ms;
+static uint8_t  s3_track_ok;
+static uint16_t s3_timeout;
+static uint16_t s3_curve_timer;
+volatile float s3_dbg_err, s3_dbg_corr, s3_dbg_ramp;  // debug
+volatile float s3_dbg_t1, s3_dbg_t2;                   // debug: 刚设完的 target
+volatile float s3_dbg_t1_end, s3_dbg_t2_end;            // debug: case 末尾的 target
+
+// 第三问独立 PID
+static pid_ctrl_t s3_pid;
+
+static void s3_pid_init(void)
+{
+    s3_pid.Kp = 3.0f; s3_pid.Ki = 0.3f; s3_pid.Kd = 0.5f;
+    s3_pid.integral_max = 100.0f; s3_pid.error = 0; s3_pid.last_error = 0;
+    s3_pid.integral = 0; s3_pid.output = 0;
+}
 
 void status_cycle_next(void)
 {
@@ -23,6 +57,7 @@ void status_cycle_next(void)
     s1_init     = 0;
     m3_init     = 0;
     track_init  = 0;
+    s3_init     = 0;
 }
 
 void status_toggle_start(void)
@@ -33,32 +68,33 @@ void status_toggle_start(void)
     s1_init    = 0;
     m3_init    = 0;
     track_init = 0;
+    s3_init    = 0;
+}
+
+// 第三问：线检测去抖
+static void s3_update_line(void)
+{
+    uint8_t raw = straight_line_detected();
+    if (raw == s3_on_line_prev) s3_line_cnt++;
+    else { s3_line_cnt = 0; s3_on_line_prev = raw; }
+    if (s3_line_cnt >= S3_LINE_DEBOUNCE) s3_on_line = raw;
 }
 
 void status_run(float yaw)
 {
     switch (sys_status) {
+
     case STATUS_IDLE:
         stay_idle();
         break;
 
     case STATUS_DIST:
-        if (start_flag == 0) {
-            stay_idle();
-            s1_init = 0;
-        }
-        else if (!s1_init) {
-            straight_begin(yaw);
-            s1_init = 1;
-        }
-        // straight_run 由 ISR 驱动，这里只检查是否到位
+        if (start_flag == 0) { stay_idle(); s1_init = 0; }
+        else if (!s1_init)   { straight_begin(yaw); s1_init = 1; }
         if (straight_get_distance() / 2 >= S1_DIST_PULSES) {
-            start_flag = 0;
-            straight_force_stop();
-            target_speed_1 = 0;
-            target_speed_2 = 0;
-            motor_brake(MOTOR_RIGHT);
-            motor_brake(MOTOR_LEFT);
+            start_flag = 0; straight_force_stop();
+            target_speed_1 = 0; target_speed_2 = 0;
+            motor_brake(MOTOR_RIGHT); motor_brake(MOTOR_LEFT);
         }
         break;
 
@@ -75,21 +111,84 @@ void status_run(float yaw)
         }
         break;
 
+    // ===== 第三问 =====
     case STATUS_LINE_TRACK:
         if (start_flag == 0) {
-            tracking_active = 0;
-            stay_idle();
-            track_init = 0;
-        } else {
-            if (!track_init) {
-                float snapped = (yaw > 90.0f || yaw < -90.0f) ? 180.0f : 0.0f;
-                straight_begin(snapped);
-                tracking_active = 1;
-                motor_set_direction(MOTOR_LEFT, 1);
-                motor_set_direction(MOTOR_RIGHT, 1);
-                track_init = 1;
+            stay_idle(); s3_init = 0; s3_state = S3_STRAIGHT1; return;
+        }
+        if (!s3_init) {
+            s3_ref_yaw = yaw - S3_PRE_TURN_1;
+            s3_ramp    = S3_BASE_SPEED * 0.5f;
+            s3_pid_init();
+            s3_state   = S3_STRAIGHT1;
+            s3_on_line = 0; s3_on_line_prev = 0; s3_line_cnt = 0;
+            s3_track_ok = 0; s3_timeout = 0;
+            motor_set_direction(MOTOR_RIGHT, 1);
+            motor_set_direction(MOTOR_LEFT, 1);
+            s3_init = 1;
+        }
+        {
+            uint8_t raw = 0;
+            for (int i = 0; i < 7; i++) {
+                if (tracker_value[i] == 0) { raw = 1; break; }
+            }
+            if (raw == s3_on_line_prev) s3_line_cnt++;
+            else { s3_line_cnt = 0; s3_on_line_prev = raw; }
+            if (s3_line_cnt >= S3_LINE_DEBOUNCE) s3_on_line = raw;
+        }
+        extern volatile uint32_t sys_tick_ms;
+        if (sys_tick_ms - s3_track_ms >= 30) { s3_track_ms = sys_tick_ms; s3_track_ok = 0; }
+
+        if (s3_state == S3_STRAIGHT1) {
+            if (s3_ramp < S3_BASE_SPEED) {
+                s3_ramp += S3_RAMP_STEP;
+                if (s3_ramp > S3_BASE_SPEED) s3_ramp = S3_BASE_SPEED;
+            }
+            float err  = -normalize_angle(yaw - s3_ref_yaw);
+            float corr = pid_compute(&s3_pid, err);
+            target_speed_1 = clamp_value(s3_ramp + corr, 0.0f, S3_SPEED_MAX);
+            target_speed_2 = clamp_value(s3_ramp - corr, 0.0f, S3_SPEED_MAX);
+
+            if (s3_ramp >= S3_BASE_SPEED && !s3_on_line) s3_timeout++;
+            if (s3_timeout > 150) s3_ramp = 200.0f;  // ~1.5s 后降速
+
+            if (s3_on_line) { s3_ramp = 200.0f; s3_curve_timer = 0; s3_state = S3_CURVE1; }
+        }
+        else if (s3_state == S3_CURVE1) {
+            if (!s3_track_ok) { s3_track_ok = 1; tracker_pid(s3_ramp, &pid_line); }
+            if (s3_ramp < 500.0f) s3_ramp += 10.0f;
+            if (!s3_on_line) {
+                s3_ref_yaw = normalize_angle(yaw + S3_PRE_TURN_2);
+                s3_ramp  = S3_BASE_SPEED;
+                s3_timeout = 0;
+                s3_state = S3_STRAIGHT2;
             }
         }
+        else if (s3_state == S3_STRAIGHT2) {
+            if (s3_ramp < S3_BASE_SPEED) { s3_ramp = S3_BASE_SPEED / 2.0f; }
+            if (s3_ramp < S3_BASE_SPEED) {
+                s3_ramp += S3_RAMP_STEP;
+                if (s3_ramp > S3_BASE_SPEED) s3_ramp = S3_BASE_SPEED;
+            }
+            float err  = -normalize_angle(yaw - s3_ref_yaw);
+            float corr = pid_compute(&s3_pid, err);
+            target_speed_1 = clamp_value(s3_ramp + corr, 0.0f, S3_SPEED_MAX);
+            target_speed_2 = clamp_value(s3_ramp - corr, 0.0f, S3_SPEED_MAX);
+
+            if (s3_ramp >= S3_BASE_SPEED && !s3_on_line) s3_timeout++;
+            if (s3_timeout > 130) s3_ramp = 200.0f;  // ~1.3s 后降速
+
+            if (s3_on_line) { s3_ramp = 200.0f; s3_curve_timer = 0; s3_state = S3_CURVE2; }
+        }
+        else if (s3_state == S3_CURVE2) {
+            if (!s3_track_ok) { s3_track_ok = 1; tracker_pid(s3_ramp, &pid_line); }
+            if (s3_ramp < 500.0f) s3_ramp += 10.0f;
+            if (!s3_on_line) {
+                s3_init = 0;  // 强制重新初始化
+                s3_state = S3_STRAIGHT1;
+            }
+        }
+        else { stay_idle(); }
         break;
 
     default:

@@ -30,8 +30,8 @@ extern volatile int encoder_motor1;
 extern volatile int encoder_motor2;
 extern volatile float speed_1;
 extern volatile float speed_2;
-extern float target_speed_1;
-extern float target_speed_2;
+extern volatile float target_speed_1;
+extern volatile float target_speed_2;
 extern float integral_1;
 extern float integral_2;
 extern int32_t PWM_1_duty;
@@ -42,5 +42,6 @@ void motor_brake(uint8_t motor_id);
 void motor_init(uint8_t motor_id);
 void motor_set_duty(uint8_t motor_id,uint32_t duty);
 void MOTOR_PID(uint8_t motor_id,float target_speed);
+uint8_t motor_align_pulses(void);
 
 #endif /* MOTOR_H */
