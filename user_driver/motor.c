@@ -27,7 +27,10 @@ static uint8_t pid_divider = 0;
 float Kp1=12.0;//比例系数
 float Ki1=2.0;//积分系数
 
-
+uint8_t last_status;
+uint8_t change = 0;
+#define STRAIGHT 0
+#define TRACK 1
 
 //初始化电机
 void motor_init(uint8_t motor_id)
@@ -107,9 +110,11 @@ void motor_set_direction(uint8_t motor_id,uint8_t direction)
 void motor_brake(uint8_t motor_id)
 {
     if (motor_id == MOTOR_RIGHT) {
+        DL_Timer_setCaptureCompareValue(PWMAB_INST, 4000, GPIO_PWMAB_C0_IDX); // PWM 拉满
         DL_GPIO_setPins(MOTOR_AIN1_PORT, MOTOR_AIN1_PIN);
         DL_GPIO_setPins(MOTOR_AIN2_PORT, MOTOR_AIN2_PIN);
     } else if (motor_id == MOTOR_LEFT) {
+        DL_Timer_setCaptureCompareValue(PWMAB_INST, 4000, GPIO_PWMAB_C1_IDX); // PWM 拉满
         DL_GPIO_setPins(MOTOR_BIN1_PORT, MOTOR_BIN1_PIN);
         DL_GPIO_setPins(MOTOR_BIN2_PORT, MOTOR_BIN2_PIN);
     }
@@ -131,6 +136,53 @@ float speed_calculate(int motor_id){
     return speed;
 }
 
+void question2_run()
+{
+    
+    if(change < 4){
+        if (tracking_active) {
+            all_lost = 0;
+            for (int i = 0; i < 7; i++) {
+                all_lost+= tracker_value[i];
+            }
+            if(all_lost==7){
+                all_lost=1;
+            }
+            else{
+                all_lost=0;
+            }
+            if (all_lost) {
+                float snapped = (g_yaw > 90.0f || g_yaw < -90.0f) ? 180.0f : 0.0f;
+                straight_nav_update_ref(snapped);
+                straight_nav_run(g_yaw);
+                if(last_status != STRAIGHT){
+                    change++;
+                    last_status = STRAIGHT;
+                }
+            }
+            else {
+                if(last_status != TRACK){
+                    change++;
+                    last_status = TRACK;
+                }
+                track_line();
+            }
+        }
+        else if (straight_is_active()) {
+            
+            if (straight_run(g_yaw)) {
+                tracking_active = 1;
+                pid_line.integral = 0;
+            }
+        }
+    }
+    else {
+        motor_brake(MOTOR_RIGHT);
+        motor_brake(MOTOR_LEFT);
+        stay_idle();
+    }
+}
+
 
 void MOTOR_PID_INST_IRQHandler()
 {
@@ -147,32 +199,14 @@ void MOTOR_PID_INST_IRQHandler()
             speed_2 = speed_2 * (1.0f - SPEED_FILTER_ALPHA) + raw_2 * SPEED_FILTER_ALPHA;
             // 统一读取传感器，20Hz 路由：循迹 / 直行
             tracker_get_value();
-            if (tracking_active) {
-
-                for (int i = 0; i < 7; i++) {
-                    all_lost+= tracker_value[i];
-                }
-                if(all_lost==7){
-                    all_lost=1;
-                }
-                else{
-                    all_lost=0;
-                }
-                if (all_lost) {
-                    float snapped = (g_yaw > 90.0f || g_yaw < -90.0f) ? 180.0f : 0.0f;
-                    straight_nav_update_ref(snapped);
-                    straight_nav_run(g_yaw);
-                }
-                else {
-                    track_line();
-                }
-            }
-            if (straight_is_active()) {
-                if (straight_run(g_yaw)) {
-                    tracking_active = 1;
-                    pid_line.integral = 0;
-                }
-            }
+            question2_run();
+            // switch (current_mode) {
+            // case STATUS_LINE_TRACK_2:
+            //     question2_run();
+            //     break;
+            // default:
+            //     break;
+            // }
             MOTOR_PID(MOTOR_RIGHT,target_speed_1);
             MOTOR_PID(MOTOR_LEFT,target_speed_2);
         }

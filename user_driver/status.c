@@ -33,6 +33,7 @@ void status_toggle_start(void)
     s1_init    = 0;
     m3_init    = 0;
     track_init = 0;
+    change = 0;
 }
 
 void status_run(float yaw)
@@ -62,20 +63,7 @@ void status_run(float yaw)
         }
         break;
 
-    case STATUS_MPU_NAV:
-        if (start_flag == 0) {
-            stay_idle();
-        }
-        else {
-            if (!m3_init) {
-                straight_nav_begin(yaw);
-                m3_init = 1;
-            }
-            straight_nav_run(yaw);
-        }
-        break;
-
-    case STATUS_LINE_TRACK:
+    case STATUS_LINE_TRACK_2:
         if (start_flag == 0) {
             tracking_active = 0;
             stay_idle();
