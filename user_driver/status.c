@@ -22,19 +22,22 @@ extern volatile int encoder_motor2;
 #define S3_BASE_SPEED     600.0f
 #define S3_RAMP_STEP      20.0f
 #define S3_SPEED_MAX      700.0f
-#define S3_PRE_TURN_1     43.0f
-#define S3_PRE_TURN_2     54.0f
+#define S3_PRE_TURN_1     41.0f
+#define S3_PRE_TURN_2     56.0f
+#define S3_ALIGN_BOOST    1.5f
 #define S3_LINE_DEBOUNCE  3
 
-enum { S3_STRAIGHT1=0, S3_CURVE1, S3_STRAIGHT2, S3_CURVE2, S3_DONE };
+enum { S3_STRAIGHT1=0, S3_ALIGN1, S3_CURVE1, S3_STRAIGHT2, S3_ALIGN2, S3_CURVE2, S3_DONE };
 static uint8_t  s3_state = S3_STRAIGHT1;
 static uint8_t  s3_init  = 0;
+static float    s3_init_yaw;
 static float    s3_ref_yaw;
 static float    s3_ramp;
 static uint8_t  s3_line_cnt, s3_on_line, s3_on_line_prev;
 static uint32_t s3_track_ms;
 static uint8_t  s3_track_ok;
 static uint16_t s3_timeout;
+static int8_t   s3_turn_dir;  // 1=右转, -1=左转, 交替
 static uint16_t s3_curve_timer;
 volatile float s3_dbg_err, s3_dbg_corr, s3_dbg_ramp;  // debug
 volatile float s3_dbg_t1, s3_dbg_t2;                   // debug: 刚设完的 target
@@ -136,6 +139,8 @@ void status_run(float yaw)
             stay_idle(); s3_init = 0; s3_state = S3_STRAIGHT1; return;
         }
         if (!s3_init) {
+            s3_init_yaw = yaw;
+            s3_turn_dir = -1;  // 第一弯右转 (yaw - angle)
             s3_ref_yaw = yaw - S3_PRE_TURN_1;
             s3_ramp    = S3_BASE_SPEED * 0.5f;
             s3_pid_init();
@@ -171,13 +176,24 @@ void status_run(float yaw)
             if (s3_ramp >= S3_BASE_SPEED && !s3_on_line) s3_timeout++;
             if (s3_timeout > 150) s3_ramp = 200.0f;  // ~1.5s 后降速
 
-            if (s3_on_line) { s3_ramp = 200.0f; s3_curve_timer = 0; s3_state = S3_CURVE1; }
+            if (s3_on_line) { s3_ramp = 300.0f; s3_state = S3_ALIGN1; }
+        }
+        else if (s3_state == S3_ALIGN1) {
+            s3_ref_yaw = s3_init_yaw;  // 左转回 0°
+            float err_a = -normalize_angle(yaw - s3_ref_yaw);
+            float corr_a = pid_compute(&s3_pid, err_a) * S3_ALIGN_BOOST;
+            target_speed_1 = clamp_value(s3_ramp + corr_a, 0.0f, S3_SPEED_MAX);
+            target_speed_2 = clamp_value(s3_ramp - corr_a, 0.0f, S3_SPEED_MAX);
+            float d = normalize_angle(yaw - s3_init_yaw);
+            if (d < 0) d = -d;
+            if (d < 5.0f) { s3_state = S3_CURVE1; }
         }
         else if (s3_state == S3_CURVE1) {
             if (!s3_track_ok) { s3_track_ok = 1; tracker_pid(s3_ramp, &pid_line); }
             if (s3_ramp < 500.0f) s3_ramp += 10.0f;
             if (!s3_on_line) {
-                s3_ref_yaw = normalize_angle(yaw + S3_PRE_TURN_2);
+                s3_turn_dir = -s3_turn_dir;
+                s3_ref_yaw = normalize_angle(yaw + s3_turn_dir * S3_PRE_TURN_2);
                 s3_ramp  = S3_BASE_SPEED;
                 s3_timeout = 0;
                 s3_state = S3_STRAIGHT2;
@@ -195,16 +211,30 @@ void status_run(float yaw)
             target_speed_2 = clamp_value(s3_ramp - corr, 0.0f, S3_SPEED_MAX);
 
             if (s3_ramp >= S3_BASE_SPEED && !s3_on_line) s3_timeout++;
-            if (s3_timeout > 130) s3_ramp = 200.0f;  // ~1.3s 后降速
+            if (s3_timeout > 160) s3_ramp = 200.0f;  // ~1.3s 后降速
 
-            if (s3_on_line) { s3_ramp = 200.0f; s3_curve_timer = 0; s3_state = S3_CURVE2; }
+            if (s3_on_line) { s3_ramp = 300.0f; s3_state = S3_ALIGN2; }
+        }
+        else if (s3_state == S3_ALIGN2) {
+            float ref2 = normalize_angle(s3_init_yaw + 180.0f);
+            s3_ref_yaw = ref2;  // 右转回 180°
+            float err_a = -normalize_angle(yaw - s3_ref_yaw);
+            float corr_a = pid_compute(&s3_pid, err_a) * S3_ALIGN_BOOST;
+            target_speed_1 = clamp_value(s3_ramp + corr_a, 0.0f, S3_SPEED_MAX);
+            target_speed_2 = clamp_value(s3_ramp - corr_a, 0.0f, S3_SPEED_MAX);
+            float d = normalize_angle(yaw - ref2);
+            if (d < 0) d = -d;
+            if (d < 5.0f) { s3_state = S3_CURVE2; }
         }
         else if (s3_state == S3_CURVE2) {
             if (!s3_track_ok) { s3_track_ok = 1; tracker_pid(s3_ramp, &pid_line); }
-            if (s3_ramp < 500.0f) s3_ramp += 10.0f;
+            if (s3_ramp < 500.0f) s3_ramp += 5.0f;
             if (!s3_on_line) {
-                s3_init = 0;  // 强制重新初始化
-                s3_state = S3_STRAIGHT1;
+                s3_turn_dir = -s3_turn_dir;
+                s3_ref_yaw = normalize_angle(yaw + s3_turn_dir * S3_PRE_TURN_2);
+                s3_ramp  = S3_BASE_SPEED;
+                s3_timeout = 0;
+                s3_state = S3_STRAIGHT2;
             }
         }
         else { stay_idle(); }
