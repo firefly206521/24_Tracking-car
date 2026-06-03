@@ -58,6 +58,7 @@ void status_cycle_next(void)
     m3_init     = 0;
     track_init  = 0;
     s3_init     = 0;
+    change      = 0;
 }
 
 void status_toggle_start(void)

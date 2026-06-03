@@ -1,6 +1,7 @@
 #include "motor.h"
 #include "tracker.h"
 #include "straight.h"
+#include "status.h"
 
 volatile int encoder_motor1;
 volatile int encoder_motor2;
@@ -199,14 +200,9 @@ void MOTOR_PID_INST_IRQHandler()
             speed_2 = speed_2 * (1.0f - SPEED_FILTER_ALPHA) + raw_2 * SPEED_FILTER_ALPHA;
             // 统一读取传感器，20Hz 路由：循迹 / 直行
             tracker_get_value();
-            question2_run();
-            // switch (current_mode) {
-            // case STATUS_LINE_TRACK_2:
-            //     question2_run();
-            //     break;
-            // default:
-            //     break;
-            // }
+            if (sys_status == STATUS_LINE_TRACK_2) {
+                question2_run();
+            }
             MOTOR_PID(MOTOR_RIGHT,target_speed_1);
             MOTOR_PID(MOTOR_LEFT,target_speed_2);
         }
