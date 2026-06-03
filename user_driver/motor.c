@@ -14,8 +14,8 @@ int32_t PWM_2_duty=0;
 float integral_1=0;    // 右电机积分累加
 float integral_2=0;    // 左电机积分累加
 //电机速度
-float target_speed_1;
-float target_speed_2;
+volatile float target_speed_1;
+volatile float target_speed_2;
 
 //PID分频：硬件定时器10ms，每5次(50ms)执行一次PID
 #define PID_DECIMATION    1
@@ -227,6 +227,35 @@ int32_t limit_duty(int32_t duty){
         duty=0;
     }
     return duty;
+}
+
+// 差速追赶：右轮加速左轮减速，追 220 个脉冲差后同速
+// 主循环调用 motor_align_pulses()，返 1 完成
+uint8_t motor_align_pulses(void)
+{
+    #define ALIGN_GAP 220
+    static int32_t enc_r0 = 0, enc_l0 = 0;
+    static uint8_t active = 0;
+
+    if (!active) {
+        enc_r0 = encoder_motor1;
+        enc_l0 = encoder_motor2;
+        active  = 1;
+    }
+
+    int32_t dr = encoder_motor1 - enc_r0;
+    int32_t dl = encoder_motor2 - enc_l0;
+
+    if (dr - dl >= ALIGN_GAP) {
+        target_speed_1 = STRAIGHT_BASE_SPEED;
+        target_speed_2 = STRAIGHT_BASE_SPEED;
+        active = 0;
+        return 1;
+    }
+
+    target_speed_1 = STRAIGHT_BASE_SPEED + 300.0f;
+    target_speed_2 = STRAIGHT_BASE_SPEED - 300.0f;
+    return 0;
 }
 
 void MOTOR_PID(uint8_t motor_id,float target_speed){
