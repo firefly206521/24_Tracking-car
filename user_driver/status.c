@@ -62,6 +62,7 @@ void status_cycle_next(void)
     track_init  = 0;
     s3_init     = 0;
     change      = 0;
+    motor_hard_brake_reset();
 }
 
 void status_toggle_start(void)
@@ -99,7 +100,7 @@ void status_run(float yaw)
         if (straight_get_distance() / 2 >= S1_DIST_PULSES) {
             start_flag = 0; straight_force_stop();
             target_speed_1 = 0; target_speed_2 = 0;
-            motor_brake(MOTOR_RIGHT); motor_brake(MOTOR_LEFT);
+            motor_hard_brake(MOTOR_RIGHT); motor_hard_brake(MOTOR_LEFT);
         }
         break;
 

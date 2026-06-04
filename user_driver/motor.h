@@ -40,6 +40,8 @@ extern uint8_t change;
 
 void motor_set_direction(uint8_t motor_id,uint8_t direction);
 void motor_brake(uint8_t motor_id);
+void motor_hard_brake(uint8_t motor_id);
+void motor_hard_brake_reset(void);
 void motor_init(uint8_t motor_id);
 void motor_set_duty(uint8_t motor_id,uint32_t duty);
 void MOTOR_PID(uint8_t motor_id,float target_speed);
