@@ -59,7 +59,6 @@ static void s3_pid_init(void)
 
 void status_cycle_next(void)
 {
-    stay_idle();
     sys_status = (sys_status + 1) % STATUS_COUNT;
     start_flag  = 0;
     s1_init     = 0;
@@ -68,6 +67,7 @@ void status_cycle_next(void)
     s3_init     = 0;
     change      = 0;
     motor_hard_brake_reset();
+    stay_idle();
 }
 
 void status_toggle_start(void)
@@ -105,7 +105,7 @@ void status_run(float yaw)
     case STATUS_DIST:
         if (start_flag == 0) { stay_idle(); s1_init = 0; }
         else if (!s1_init)   { straight_begin(yaw); s1_init = 1; }
-        if (straight_get_distance() / 2 >= S1_DIST_PULSES) {
+        if (s1_init && straight_get_distance() / 2 >= S1_DIST_PULSES) {
             start_flag = 0; straight_force_stop();
             target_speed_1 = 0; target_speed_2 = 0;
             motor_hard_brake(MOTOR_RIGHT); motor_hard_brake(MOTOR_LEFT);
