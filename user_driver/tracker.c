@@ -8,7 +8,7 @@ pid_ctrl_t pid_line = {
     .Kp = 950.0f,
     .Ki = 10.0f,
     .Kd =400.0f,
-    .integral_max = 30.0f
+    .integral_max = 40.0f
 };
 
 #define BASE_SPEED  500

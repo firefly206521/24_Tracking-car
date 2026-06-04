@@ -16,7 +16,7 @@ else return 0;
 }
 
 //按键消抖时间窗口 (ms)
-#define KEY_DEBOUNCE_MS 50
+#define KEY_DEBOUNCE_MS 150
 
 //GPIO的中断是很多GPIO共享的，所以具体哪个GPIO触发了中断需要在一个函数里判断
 void GROUP1_IRQHandler(void)
