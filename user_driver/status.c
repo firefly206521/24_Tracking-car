@@ -31,6 +31,8 @@ extern volatile int encoder_motor2;
 #define S3_FORCE_TURN_DELAY_1    400  // 降速后强制转弯延时（第一段直道，ms）
 #define S3_FORCE_TURN_DELAY_2    400  // 降速后强制转弯延时（第二段直道，ms）
 #define S3_FORCE_TURN_EXTRA      5.0f // 强制转弯超出水平的角度（度）
+#define S3_REVERSALS_Q3          2    // Q3: 半球反转次数达标后刹车
+#define S3_REVERSALS_Q4          8    // Q4: 半球反转次数达标后刹车
 
 enum { S3_STRAIGHT1=0, S3_ALIGN1, S3_CURVE1, S3_STRAIGHT2, S3_ALIGN2, S3_CURVE2, S3_DONE };
 static uint8_t  s3_state = S3_STRAIGHT1;
@@ -48,6 +50,8 @@ static int32_t s3_straight_start_enc;  // 刚进入直道时的编码器总和
 static uint8_t s3_force_turn_active;   // 强制转弯已触发标记
 static uint32_t s3_slowdown_ms;        // 降速开始时刻 (sys_tick_ms)
 static uint8_t s3_line_prev;        // s3_on_line 前一拍，用于边沿检测
+static int8_t  s3_hemisphere;       // 当前半球: -1=未初始化, 0=前方, 1=后方
+static uint8_t s3_reversal_count;   // 半球反转计数
 volatile float s3_dbg_err, s3_dbg_corr, s3_dbg_ramp;  // debug
 volatile float s3_dbg_t1, s3_dbg_t2;                   // debug: 刚设完的 target
 volatile float s3_dbg_t1_end, s3_dbg_t2_end;            // debug: case 末尾的 target
@@ -156,6 +160,8 @@ void status_run(float yaw)
             s3_slowdown_ms = 0;
             s3_force_turn_active = 0;
             s3_line_prev = 0;
+            s3_hemisphere = -1;
+            s3_reversal_count = 0;
             change = 0;
             s3_init = 1;
         }
@@ -172,11 +178,28 @@ void status_run(float yaw)
         extern volatile uint32_t sys_tick_ms;
         if (sys_tick_ms - s3_track_ms >= 30) { s3_track_ms = sys_tick_ms; s3_track_ok = 0; }
 
+        // 陀螺仪半球反转检测
+        {
+            float rel = normalize_angle(yaw - s3_init_yaw);
+            uint8_t hemi = (rel > 90.0f || rel < -90.0f) ? 1 : 0;
+            if (s3_hemisphere < 0) {
+                s3_hemisphere = (int8_t)hemi;
+            } else if (hemi != (uint8_t)s3_hemisphere) {
+                s3_hemisphere = (int8_t)hemi;
+                s3_reversal_count++;
+            }
+        }
+
         if (s3_on_line != s3_line_prev) {
             s3_line_prev = s3_on_line;
             change++;
             buzzer_beep();
-            if (change >= (sys_status == STATUS_LINE_TRACK_2ND ? 16 : 4)) {
+        }
+
+        // 反转次数达标且脱线 → 刹车
+        {
+            uint8_t target = (sys_status == STATUS_LINE_TRACK_2ND) ? S3_REVERSALS_Q4 : S3_REVERSALS_Q3;
+            if (s3_reversal_count >= target && !s3_on_line) {
                 start_flag = 0;
                 motor_hard_brake(MOTOR_RIGHT);
                 motor_hard_brake(MOTOR_LEFT);
