@@ -11,6 +11,13 @@ pid_ctrl_t pid_line = {
     .integral_max = 60.0f
 };
 
+pid_ctrl_t pid_line_q4 = {
+    .Kp = 900.0f,
+    .Ki = 10.0f,
+    .Kd = 600.0f,
+    .integral_max = 60.0f
+};
+
 #define BASE_SPEED  500
 #define MAX_SPEED   1200
 #define MIN_SPEED   50

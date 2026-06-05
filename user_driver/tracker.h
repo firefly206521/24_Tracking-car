@@ -7,6 +7,7 @@
 extern uint8_t tracker_value[];
 extern volatile uint8_t tracking_active;
 extern pid_ctrl_t pid_line;
+extern pid_ctrl_t pid_line_q4;
 
 void tracker_get_value();
 void track_line();
