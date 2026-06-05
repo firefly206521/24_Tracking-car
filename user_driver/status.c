@@ -225,6 +225,7 @@ void status_run(float yaw)
                 s3_timeout = 0;
                 s3_straight_start_enc = straight_enc_acc;
                 s3_slowdown_ms = 0;
+                pid_reset(&s3_pid);
                 s3_state = S3_STRAIGHT2;
             }
         }
@@ -282,6 +283,7 @@ void status_run(float yaw)
                 s3_timeout = 0;
                 s3_straight_start_enc = straight_enc_acc;
                 s3_slowdown_ms = 0;
+                pid_reset(&s3_pid);
                 s3_state = (s3_turn_dir == -1) ? S3_STRAIGHT1 : S3_STRAIGHT2;
             }
         }
