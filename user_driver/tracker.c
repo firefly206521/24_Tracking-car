@@ -5,10 +5,10 @@ uint8_t tracker_value[] = {0,0,0,0,0,0,0};
 volatile uint8_t tracking_active = 0;
 
 pid_ctrl_t pid_line = {
-    .Kp = 1000.0f,
+    .Kp = 850.0f,
     .Ki = 10.0f,
-    .Kd = 0.0f,
-    .integral_max = 30.0f
+    .Kd = 400.0f,
+    .integral_max = 60.0f
 };
 
 #define BASE_SPEED  500
