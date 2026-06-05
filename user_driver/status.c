@@ -132,7 +132,8 @@ void status_run(float yaw)
         }
         break;
 
-    // ===== 第三问 =====
+    // ===== 第三问 / 第四问 =====
+    case STATUS_LINE_TRACK_2ND:
     case STATUS_LINE_TRACK:
         if (start_flag == 0) {
             stay_idle(); s3_init = 0; s3_state = S3_STRAIGHT1; return;
@@ -169,7 +170,7 @@ void status_run(float yaw)
         if (s3_on_line != s3_line_prev) {
             s3_line_prev = s3_on_line;
             change++;
-            if (change >= 4) {
+            if (change >= (sys_status == STATUS_LINE_TRACK_2ND ? 16 : 4)) {
                 start_flag = 0;
                 motor_hard_brake(MOTOR_RIGHT);
                 motor_hard_brake(MOTOR_LEFT);
