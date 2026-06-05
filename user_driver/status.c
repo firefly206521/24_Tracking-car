@@ -107,16 +107,20 @@ void status_run(float yaw)
         }
         break;
 
-    case STATUS_MPU_NAV:
+    case STATUS_LINE_TRACK_2:
         if (start_flag == 0) {
+            tracking_active = 0;
+            straight_force_stop();
             stay_idle();
-        }
-        else {
-            if (!m3_init) {
-                straight_nav_begin(yaw);
-                m3_init = 1;
+            track_init = 0;
+        } else {
+            if (!track_init) {
+                float snapped = (yaw > 90.0f || yaw < -90.0f) ? 180.0f : 0.0f;
+                straight_begin(snapped);
+                motor_set_direction(MOTOR_LEFT, 1);
+                motor_set_direction(MOTOR_RIGHT, 1);
+                track_init = 1;
             }
-            straight_nav_run(yaw);
         }
         break;
 
