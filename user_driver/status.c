@@ -67,6 +67,9 @@ void status_cycle_next(void)
     m3_init     = 0;
     track_init  = 0;
     s3_init     = 0;
+    change      = 0;
+    motor_hard_brake_reset();
+    stay_idle();
 }
 
 void status_toggle_start(void)
@@ -78,6 +81,10 @@ void status_toggle_start(void)
     m3_init    = 0;
     track_init = 0;
     s3_init    = 0;
+    change     = 0;
+    tracking_active = 0;
+    straight_force_stop();
+    motor_hard_brake_reset();
 }
 
 // 第三问：线检测去抖
@@ -110,13 +117,13 @@ void status_run(float yaw)
     case STATUS_LINE_TRACK_2:
         if (start_flag == 0) {
             tracking_active = 0;
-            straight_force_stop();
             stay_idle();
             track_init = 0;
         } else {
             if (!track_init) {
                 float snapped = (yaw > 90.0f || yaw < -90.0f) ? 180.0f : 0.0f;
                 straight_begin(snapped);
+                tracking_active = 1;
                 motor_set_direction(MOTOR_LEFT, 1);
                 motor_set_direction(MOTOR_RIGHT, 1);
                 track_init = 1;

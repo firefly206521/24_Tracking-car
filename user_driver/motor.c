@@ -1,19 +1,19 @@
 #include "motor.h"
 #include "tracker.h"
 #include "straight.h"
+#include "status.h"
 
 volatile int encoder_motor1;
 volatile int encoder_motor2;
 volatile float speed_1=0;
 volatile float speed_2=0;
+uint8_t all_lost =0;
 
 //pid所用数量 — 位置式 PID
 int32_t PWM_1_duty=0;
 int32_t PWM_2_duty=0;
 float integral_1=0;    // 右电机积分累加
 float integral_2=0;    // 左电机积分累加
-
-
 //电机速度
 volatile float target_speed_1;
 volatile float target_speed_2;
@@ -27,6 +27,17 @@ static uint8_t pid_divider = 0;
 //pid参数 — 位置式 PID: PWM = Kp×error + Ki×integral
 float Kp1=12.0;//比例系数
 float Ki1=2.0;//积分系数
+
+uint8_t last_status;
+uint8_t change = 0;
+#define STRAIGHT 0
+#define TRACK 1
+
+// 硬刹停：反转 PWM 维持计数器
+#define HARD_BRAKE_TICKS 8   // 8 * 30ms = 240ms 反转制动
+#define HARD_BRAKE_PWM   4000
+static int8_t hard_brake_1 = -1;  // RIGHT, -1=空闲
+static int8_t hard_brake_2 = -1;  // LEFT
 
 
 
@@ -108,9 +119,11 @@ void motor_set_direction(uint8_t motor_id,uint8_t direction)
 void motor_brake(uint8_t motor_id)
 {
     if (motor_id == MOTOR_RIGHT) {
+        DL_Timer_setCaptureCompareValue(PWMAB_INST, 4000, GPIO_PWMAB_C0_IDX); // PWM 拉满
         DL_GPIO_setPins(MOTOR_AIN1_PORT, MOTOR_AIN1_PIN);
         DL_GPIO_setPins(MOTOR_AIN2_PORT, MOTOR_AIN2_PIN);
     } else if (motor_id == MOTOR_LEFT) {
+        DL_Timer_setCaptureCompareValue(PWMAB_INST, 4000, GPIO_PWMAB_C1_IDX); // PWM 拉满
         DL_GPIO_setPins(MOTOR_BIN1_PORT, MOTOR_BIN1_PIN);
         DL_GPIO_setPins(MOTOR_BIN2_PORT, MOTOR_BIN2_PIN);
     }
@@ -133,6 +146,102 @@ float speed_calculate(int motor_id){
 }
 
 
+void question2_run()
+{
+
+    if (change < 4) {
+        if (tracking_active) {
+            all_lost = 0;
+            for (int i = 0; i < 7; i++) {
+                all_lost+= tracker_value[i];
+            }
+            if(all_lost==7){
+                all_lost=1;
+            }
+            else{
+                all_lost=0;
+            }
+            if (all_lost) {
+                float snapped = (g_yaw > 90.0f || g_yaw < -90.0f) ? 180.0f : 0.0f;
+                straight_nav_update_ref(snapped);
+                straight_nav_run(g_yaw);
+                if(last_status != STRAIGHT){
+                    change++;
+                    last_status = STRAIGHT;
+                }
+            }
+            else {
+                if(last_status != TRACK){
+                    change++;
+                    last_status = TRACK;
+                }
+                track_line();
+            }
+        }
+        else if (straight_is_active()) {
+
+            if (straight_run(g_yaw)) {
+                tracking_active = 1;
+                pid_line.integral = 0;
+            }
+        }
+    }
+    else if (change == 4) {
+        motor_hard_brake(MOTOR_RIGHT);
+        motor_hard_brake(MOTOR_LEFT);
+        change = 5;
+    }
+}
+
+
+// ISR 每 30ms 调用一次，倒计时并维持反转方向+PWM
+static void hard_brake_tick(void)
+{
+    if (hard_brake_1 > 0) {
+        hard_brake_1--;
+        motor_set_direction(MOTOR_RIGHT, 2);
+        motor_set_duty(MOTOR_RIGHT, HARD_BRAKE_PWM);
+        if (hard_brake_1 == 0) {
+            motor_brake(MOTOR_RIGHT);
+            hard_brake_1 = -1;
+        }
+    }
+    if (hard_brake_2 > 0) {
+        hard_brake_2--;
+        motor_set_direction(MOTOR_LEFT, 2);
+        motor_set_duty(MOTOR_LEFT, HARD_BRAKE_PWM);
+        if (hard_brake_2 == 0) {
+            motor_brake(MOTOR_LEFT);
+            hard_brake_2 = -1;
+        }
+    }
+}
+
+void motor_hard_brake(uint8_t motor_id)
+{
+    if (motor_id == MOTOR_RIGHT) {
+        if (hard_brake_1 >= 0) return;  // 正在刹停或已完成，不重复触发
+        hard_brake_1    = HARD_BRAKE_TICKS;
+        integral_1      = 0;
+        target_speed_1  = 0;
+        motor_set_direction(MOTOR_RIGHT, 2);
+        motor_set_duty(MOTOR_RIGHT, HARD_BRAKE_PWM);
+    } else if (motor_id == MOTOR_LEFT) {
+        if (hard_brake_2 >= 0) return;
+        hard_brake_2    = HARD_BRAKE_TICKS;
+        integral_2      = 0;
+        target_speed_2  = 0;
+        motor_set_direction(MOTOR_LEFT, 2);
+        motor_set_duty(MOTOR_LEFT, HARD_BRAKE_PWM);
+    }
+}
+
+void motor_hard_brake_reset(void)
+{
+    hard_brake_1 = -1;
+    hard_brake_2 = -1;
+}
+
 void MOTOR_PID_INST_IRQHandler()
 {
     static float  track_nav_ref = 0;
@@ -151,32 +260,37 @@ void MOTOR_PID_INST_IRQHandler()
             speed_2 = speed_2 * (1.0f - SPEED_FILTER_ALPHA) + raw_2 * SPEED_FILTER_ALPHA;
             // 统一读取传感器，20Hz 路由：循迹 / 直行
             tracker_get_value();
-            if (tracking_active) {
-                uint8_t all_lost = 1;
-                for (int i = 0; i < 7; i++) {
-                    if (tracker_value[i]) { all_lost = 0; break; }
-                }
-                if (all_lost) {
-                    float snapped = (g_yaw > 90.0f || g_yaw < -90.0f) ? 180.0f : 0.0f;
-                    if (!track_nav_ok || snapped != track_nav_ref) {
-                        straight_nav_update_ref(snapped);
-                        track_nav_ref = snapped;
-                        track_nav_ok  = 1;
+            if (sys_status == STATUS_LINE_TRACK_2) {
+                question2_run();
+            } else {
+                if (tracking_active) {
+                    uint8_t _all_lost = 1;
+                    for (int i = 0; i < 7; i++) {
+                        if (tracker_value[i]) { _all_lost = 0; break; }
                     }
-                    straight_nav_run(g_yaw);
-                } else {
-                    track_line();
-                    track_nav_ok = 0;
+                    if (_all_lost) {
+                        float snapped = (g_yaw > 90.0f || g_yaw < -90.0f) ? 180.0f : 0.0f;
+                        if (!track_nav_ok || snapped != track_nav_ref) {
+                            straight_nav_update_ref(snapped);
+                            track_nav_ref = snapped;
+                            track_nav_ok  = 1;
+                        }
+                        straight_nav_run(g_yaw);
+                    } else {
+                        track_line();
+                        track_nav_ok = 0;
+                    }
+                }
+                if (straight_is_active()) {
+                    if (straight_run(g_yaw)) {
+                        tracking_active = 1;
+                        pid_line.integral = 0;
+                    }
                 }
             }
-            if (straight_is_active()) {
-                if (straight_run(g_yaw)) {
-                    tracking_active = 1;
-                    pid_line.integral = 0;
-                }
-            }
-            MOTOR_PID(MOTOR_RIGHT,target_speed_1);
-            MOTOR_PID(MOTOR_LEFT,target_speed_2);
+            hard_brake_tick();
+            if (hard_brake_1 <= 0) MOTOR_PID(MOTOR_RIGHT, target_speed_1);
+            if (hard_brake_2 <= 0) MOTOR_PID(MOTOR_LEFT,  target_speed_2);
         }
         break;
 
