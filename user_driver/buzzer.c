@@ -11,8 +11,8 @@ void buzzer_init(void)
 
 void buzzer_beep(void)
 {
-    DL_GPIO_clearPins(buzzer_PORT, buzzer_BUZZER_PIN);
     buzzer_start = sys_tick_ms;
+    DL_GPIO_clearPins(buzzer_PORT, buzzer_BUZZER_PIN);
 }
 
 void buzzer_tick(void)
