@@ -45,6 +45,7 @@ static int8_t   s3_turn_dir;  // 1=右转, -1=左转, 交替
 static uint16_t s3_curve_timer;
 static int32_t s3_straight_start_enc;  // 刚进入直道时的编码器总和
 static uint8_t s3_force_turn_active;   // 强制转弯已触发标记
+static uint8_t s3_line_prev;        // s3_on_line 前一拍，用于边沿检测
 volatile float s3_dbg_err, s3_dbg_corr, s3_dbg_ramp;  // debug
 volatile float s3_dbg_t1, s3_dbg_t2;                   // debug: 刚设完的 target
 volatile float s3_dbg_t1_end, s3_dbg_t2_end;            // debug: case 末尾的 target
@@ -149,6 +150,8 @@ void status_run(float yaw)
             motor_set_direction(MOTOR_LEFT, 1);
             s3_straight_start_enc = straight_enc_acc;
             s3_force_turn_active = 0;
+            s3_line_prev = 0;
+            change = 0;
             s3_init = 1;
         }
         {
@@ -162,6 +165,17 @@ void status_run(float yaw)
         }
         extern volatile uint32_t sys_tick_ms;
         if (sys_tick_ms - s3_track_ms >= 30) { s3_track_ms = sys_tick_ms; s3_track_ok = 0; }
+
+        if (s3_on_line != s3_line_prev) {
+            s3_line_prev = s3_on_line;
+            change++;
+            if (change >= 4) {
+                start_flag = 0;
+                motor_hard_brake(MOTOR_RIGHT);
+                motor_hard_brake(MOTOR_LEFT);
+                break;
+            }
+        }
 
         if (s3_state == S3_STRAIGHT1) {
             if (s3_ramp < S3_BASE_SPEED) {
