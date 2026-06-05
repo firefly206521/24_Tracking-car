@@ -13,10 +13,13 @@ void buzzer_beep(void)
 {
     buzzer_start = sys_tick_ms;
     DL_GPIO_clearPins(buzzer_PORT, buzzer_BUZZER_PIN);
+    DL_GPIO_setPins(LED_GRP_0_PORT, LED_GRP_0_LED_1_PIN);
 }
 
 void buzzer_tick(void)
 {
-    if (sys_tick_ms - buzzer_start >= 500)
+    if (sys_tick_ms - buzzer_start >= 500) {
         DL_GPIO_setPins(buzzer_PORT, buzzer_BUZZER_PIN);
+        DL_GPIO_clearPins(LED_GRP_0_PORT, LED_GRP_0_LED_1_PIN);
+    }
 }
