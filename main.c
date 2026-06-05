@@ -39,6 +39,7 @@
 #include "status.h"
 #include "straight.h"
 #include "mpu_nav.h"
+#include "buzzer.h"
 
 extern volatile uint32_t sys_tick_ms;
 
@@ -57,6 +58,9 @@ int main(void)
     OLED_ColorTurn(0);//0正常显示，1反色显示
     OLED_DisplayTurn(0);//0正常显示，1屏幕旋转180度
     OLED_Clear();
+
+    //蜂鸣器初始化
+    buzzer_init();
 
     //电机初始化
     motor_init(MOTOR_LEFT);

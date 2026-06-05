@@ -2,6 +2,7 @@
 #include "tracker.h"
 #include "straight.h"
 #include "status.h"
+#include "buzzer.h"
 
 volatile int encoder_motor1;
 volatile int encoder_motor2;
@@ -167,12 +168,14 @@ void question2_run()
                 straight_nav_run(g_yaw);
                 if(last_status != STRAIGHT){
                     change++;
+                    buzzer_beep();
                     last_status = STRAIGHT;
                 }
             }
             else {
                 if(last_status != TRACK){
                     change++;
+                    buzzer_beep();
                     last_status = TRACK;
                 }
                 track_line();
@@ -260,6 +263,7 @@ void MOTOR_PID_INST_IRQHandler()
             speed_2 = speed_2 * (1.0f - SPEED_FILTER_ALPHA) + raw_2 * SPEED_FILTER_ALPHA;
             // 统一读取传感器，20Hz 路由：循迹 / 直行
             tracker_get_value();
+            buzzer_tick();
             if (sys_status == STATUS_LINE_TRACK_2) {
                 question2_run();
             } else {

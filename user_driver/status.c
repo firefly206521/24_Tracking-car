@@ -6,8 +6,9 @@
 #include "mpu_nav.h"
 #include "pid_utils.h"
 #include "straight.h"
+#include "buzzer.h"
 
-#define S1_DIST_PULSES   1750
+#define S1_DIST_PULSES   1650
 
 system_status_t sys_status = STATUS_IDLE;
 int              start_flag = 0;
@@ -27,8 +28,8 @@ extern volatile int encoder_motor2;
 #define S3_ALIGN_BOOST    1.5f
 #define S3_TRACK_I_INIT   -20.0f  // 巡线积分初始值
 #define S3_LINE_DEBOUNCE  3
-#define S3_FORCE_TURN_PULSES_1  4500 // 强制转弯脉冲阈值（第一段直道）
-#define S3_FORCE_TURN_PULSES_2  4000 // 强制转弯脉冲阈值（第二段直道）
+#define S3_FORCE_TURN_PULSES_1  4200 // 强制转弯脉冲阈值（第一段直道）
+#define S3_FORCE_TURN_PULSES_2  3900 // 强制转弯脉冲阈值（第二段直道）
 #define S3_FORCE_TURN_EXTRA      5.0f // 强制转弯超出水平的角度（度）
 
 enum { S3_STRAIGHT1=0, S3_ALIGN1, S3_CURVE1, S3_STRAIGHT2, S3_ALIGN2, S3_CURVE2, S3_DONE };
@@ -112,6 +113,7 @@ void status_run(float yaw)
             start_flag = 0; straight_force_stop();
             target_speed_1 = 0; target_speed_2 = 0;
             motor_brake(MOTOR_RIGHT); motor_brake(MOTOR_LEFT);
+            buzzer_beep();
         }
         break;
 
@@ -170,6 +172,7 @@ void status_run(float yaw)
         if (s3_on_line != s3_line_prev) {
             s3_line_prev = s3_on_line;
             change++;
+            buzzer_beep();
             if (change >= (sys_status == STATUS_LINE_TRACK_2ND ? 16 : 4)) {
                 start_flag = 0;
                 motor_hard_brake(MOTOR_RIGHT);
