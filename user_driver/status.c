@@ -28,8 +28,8 @@ extern volatile int encoder_motor2;
 #define S3_ALIGN_BOOST    1.5f
 #define S3_TRACK_I_INIT   -20.0f  // 巡线积分初始值
 #define S3_LINE_DEBOUNCE  3
-#define S3_FORCE_TURN_DELAY_1    400  // 降速后强制转弯延时（第一段直道，ms）
-#define S3_FORCE_TURN_DELAY_2    380  // 降速后强制转弯延时（第二段直道，ms）
+#define S3_FORCE_TURN_DELAY_1    420  // 降速后强制转弯延时（第一段直道，ms）
+#define S3_FORCE_TURN_DELAY_2    390  // 降速后强制转弯延时（第二段直道，ms）
 #define S3_FORCE_TURN_EXTRA      5.0f // 强制转弯超出水平的角度（度）
 #define S3_REVERSALS_Q3          2    // Q3: 半球反转次数达标后刹车
 #define S3_REVERSALS_Q4          8    // Q4: 半球反转次数达标后刹车
@@ -222,7 +222,7 @@ void status_run(float yaw)
             target_speed_2 = clamp_value(s3_ramp - corr, 0.0f, S3_SPEED_MAX);
 
             if (s3_ramp >= S3_BASE_SPEED && !s3_on_line) s3_timeout++;
-            if (s3_timeout > 190 && s3_slowdown_ms == 0) { s3_ramp = 200.0f; s3_slowdown_ms = sys_tick_ms; }
+            if (s3_timeout > 180 && s3_slowdown_ms == 0) { s3_ramp = 200.0f; s3_slowdown_ms = sys_tick_ms; }
 
             // 降速后延时强制转弯
             if (!s3_on_line && s3_slowdown_ms != 0 && sys_tick_ms - s3_slowdown_ms >= S3_FORCE_TURN_DELAY_1) {
